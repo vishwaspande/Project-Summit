@@ -22,15 +22,24 @@ class Config:
     tickers: List[str] = None
 
 
-def _safe_first(series_like: pd.Series, prefer_latest: bool = True):
-    """Return the first numeric value from a pandas Series (columns are dates) or None."""
-    if series_like is None or len(series_like) == 0:
+def _safe_latest_value(row_like: pd.Series) -> Optional[float]:
+    """
+    yfinance financials are a row with date columns. We want the latest non-null value.
+    Columns are usually newest->oldest; but we defensively sort by column name (dates) desc.
+    """
+    if row_like is None or len(row_like) == 0:
         return None
-    # Drop NaNs and sort by column (date) if series_like is from yfinance DataFrame row
-    s = series_like.dropna()
+    s = row_like.dropna()
     if s.empty:
         return None
-    return s.iloc[0] if not prefer_latest else s.iloc[0]
+    # Try to sort columns as datetimes (newest first), else keep order
+    try:
+        cols = pd.to_datetime(s.index)
+        s = s.loc[pd.Series(cols, index=s.index).sort_values(ascending=False).index]
+    except Exception:
+        pass
+    return float(s.iloc[0])
+
 
 
 def compute_earnings_yield(price: Optional[float], eps_ttm: Optional[float]) -> Optional[float]:
@@ -43,9 +52,10 @@ def compute_roce(ebit: Optional[float], total_assets: Optional[float], current_l
     if ebit is None or total_assets is None or current_liab is None:
         return None
     capital_employed = total_assets - current_liab
-    if capital_employed is None or capital_employed == 0:
+    if capital_employed is None or capital_employed <= 0:
         return None
     return ebit / capital_employed
+
 
 
 def clamp(x: Optional[float], lo: float, hi: float) -> Optional[float]:
@@ -130,82 +140,77 @@ def fetch_company_block(ticker: str) -> Dict[str, Any]:
     except Exception:
         info["eps_ttm"] = None
 
-    # Income statement (annual)
+        # Income statement (annual, with fallbacks)
     try:
         inc = t.income_stmt  # annual
-        # align names used by yfinance (may vary)
+        if inc is None or inc.empty:
+            inc = t.income_stmt_quarterly
+
         ebit = None
-        if "EBIT" in inc.index:
-            ebit = _safe_first(inc.loc["EBIT"])
-        elif "Ebit" in inc.index:
-            ebit = _safe_first(inc.loc["Ebit"])
-        info["ebit"] = None if ebit is None else float(ebit)
+        # Common keys across tickers
+        for key in ("EBIT", "Ebit", "Operating Income", "OperatingIncome"):
+            if isinstance(inc, pd.DataFrame) and key in inc.index:
+                ebit = _safe_latest_value(inc.loc[key])
+                if ebit is not None:
+                    break
+        info["ebit"] = ebit
 
         # interest expense (usually negative)
         interest = None
         for key in ("Interest Expense", "InterestExpense", "Interest Expense Non Operating"):
-            if key in inc.index:
-                interest = _safe_first(inc.loc[key])
+            if isinstance(inc, pd.DataFrame) and key in inc.index:
+                interest = _safe_latest_value(inc.loc[key])
                 if interest is not None:
                     break
-        info["interest_expense"] = None if interest is None else float(interest)
+        info["interest_expense"] = interest
 
         # tax & pretax for tax-rate
         tax_exp = None
-        pretax = None
         for key in ("Tax Provision", "Income Tax Expense"):
-            if key in inc.index:
-                tax_exp = _safe_first(inc.loc[key])
-                if tax_exp is not None:
-                    break
+            if isinstance(inc, pd.DataFrame) and key in inc.index:
+                tax_exp = _safe_latest_value(inc.loc[key]); break
+
+        pretax = None
         for key in ("Pretax Income", "Income Before Tax", "Earnings Before Tax"):
-            if key in inc.index:
-                pretax = _safe_first(inc.loc[key])
-                if pretax is not None:
-                    break
-        info["income_tax_expense"] = None if tax_exp is None else float(tax_exp)
-        info["pretax_income"] = None if pretax is None else float(pretax)
+            if isinstance(inc, pd.DataFrame) and key in inc.index:
+                pretax = _safe_latest_value(inc.loc[key]); break
+
+        info["income_tax_expense"] = tax_exp
+        info["pretax_income"] = pretax
     except Exception:
         info.update({"ebit": None, "interest_expense": None, "income_tax_expense": None, "pretax_income": None})
 
-    # Balance sheet (annual)
+        # Balance sheet (annual, with fallbacks)
     try:
         bs = t.balance_sheet
+        if bs is None or bs.empty:
+            bs = t.balance_sheet_quarterly
+
         total_assets = None
-        current_liab = None
-        total_debt = None
-
-        # total assets
         for key in ("Total Assets", "TotalAssets"):
-            if key in bs.index:
-                total_assets = _safe_first(bs.loc[key])
-                if total_assets is not None:
-                    break
-        # current liabilities
-        for key in ("Total Current Liabilities", "TotalCurrentLiabilities"):
-            if key in bs.index:
-                current_liab = _safe_first(bs.loc[key])
-                if current_liab is not None:
-                    break
-        # debt: try Total Debt first, else sum components
-        for key in ("Total Debt", "TotalDebt"):
-            if key in bs.index:
-                total_debt = _safe_first(bs.loc[key])
-                if total_debt is not None:
-                    break
-        if total_debt is None:
-            short_lt = None
-            long_term = None
-            if "Short Long Term Debt" in bs.index:
-                short_lt = _safe_first(bs.loc["Short Long Term Debt"])
-            if "Long Term Debt" in bs.index:
-                long_term = _safe_first(bs.loc["Long Term Debt"])
-            if short_lt is not None or long_term is not None:
-                total_debt = (short_lt or 0) + (long_term or 0)
+            if isinstance(bs, pd.DataFrame) and key in bs.index:
+                total_assets = _safe_latest_value(bs.loc[key]); break
 
-        info["total_assets"] = None if total_assets is None else float(total_assets)
-        info["current_liab"] = None if current_liab is None else float(current_liab)
-        info["total_debt"] = None if total_debt is None else float(total_debt)
+        current_liab = None
+        for key in ("Total Current Liabilities", "TotalCurrentLiabilities"):
+            if isinstance(bs, pd.DataFrame) and key in bs.index:
+                current_liab = _safe_latest_value(bs.loc[key]); break
+
+        total_debt = None
+        for key in ("Total Debt", "TotalDebt"):
+            if isinstance(bs, pd.DataFrame) and key in bs.index:
+                total_debt = _safe_latest_value(bs.loc[key]); break
+        if total_debt is None:
+            short_lt = bs.loc["Short Long Term Debt"] if isinstance(bs, pd.DataFrame) and "Short Long Term Debt" in bs.index else None
+            long_term = bs.loc["Long Term Debt"] if isinstance(bs, pd.DataFrame) and "Long Term Debt" in bs.index else None
+            total_debt = ( _safe_latest_value(short_lt) if short_lt is not None else 0.0 ) + \
+                         ( _safe_latest_value(long_term) if long_term is not None else 0.0 )
+            if total_debt == 0.0:
+                total_debt = None
+
+        info["total_assets"] = total_assets
+        info["current_liab"] = current_liab
+        info["total_debt"] = total_debt
     except Exception:
         info.update({"total_assets": None, "current_liab": None, "total_debt": None})
 
@@ -295,6 +300,8 @@ def parse_args() -> Config:
     p.add_argument("--ey_spread", type=float, default=0.025, help="EY minus bond yield threshold (e.g., 0.025 = 2.5%)")
     p.add_argument("--min_roce", type=float, default=0.0, help="Optional ROCE floor (e.g., 0.12 for 12%)")
     p.add_argument("--out", type=str, default="data/magic_formula_output.csv", help="Output CSV path")
+    p.add_argument("--debug", action="store_true", help="Print missing-field reasons per ticker")
+
     args = p.parse_args()
 
     default_universe = [
@@ -341,6 +348,12 @@ def main():
 
     for c in ["ey", "roce", "wacc", "cost_of_equity", "cost_of_debt", "tax_rate"]:
         df[c] = df[c].astype(float)
+
+    if getattr(cfg, "debug", False):
+        if roce is None:
+            print(f"[DEBUG] {tk}: ROCE missing — ebit={data.get('ebit')}, "
+                f"total_assets={data.get('total_assets')}, current_liab={data.get('current_liab')}")
+
 
     # save
     df.to_csv(cfg.out_csv, index=False)
