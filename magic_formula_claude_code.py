@@ -6,6 +6,7 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import requests
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 @dataclass
@@ -44,13 +45,13 @@ class MagicFormulaScreener:
         try:
             # Placeholder - replace with actual bond yield API
             # For now, using approximate current Indian 10-year bond yield
-            self.indian_bond_yield = 7.2  # Approximate current yield
+            self.indian_bond_yield = 6.43  # Current yield as of August 2025
             print(f"Using Indian 10-Year Bond Yield: {self.indian_bond_yield}%")
             return self.indian_bond_yield
         except Exception as e:
             print(f"Error fetching bond yield: {e}")
             # Fallback to approximate rate
-            self.indian_bond_yield = 7.2
+            self.indian_bond_yield = 6.43
             return self.indian_bond_yield
     
     def calculate_roce(self, financial_data: Dict) -> float:
@@ -99,7 +100,7 @@ class MagicFormulaScreener:
         """
         try:
             if risk_free_rate is None:
-                risk_free_rate = self.indian_bond_yield or 7.2
+                risk_free_rate = self.indian_bond_yield or 6.43
             
             beta = financial_data.get('beta', 1.0)
             debt_to_equity = financial_data.get('debt_to_equity', 0.3)
@@ -256,9 +257,6 @@ class MagicFormulaScreener:
     def generate_report(self, screened_stocks: List[StockMetrics], 
                        output_dir: str = "magic_formula_results",
                        file_prefix: str = "magic_formula") -> pd.DataFrame:
-    def generate_report(self, screened_stocks: List[StockMetrics], 
-                       output_dir: str = "magic_formula_results",
-                       file_prefix: str = "magic_formula") -> pd.DataFrame:
         """
         Generate comprehensive reports in multiple formats
         
@@ -270,11 +268,19 @@ class MagicFormulaScreener:
         Returns:
             DataFrame with results
         """
-        import os
-        from datetime import datetime
-        
         if not screened_stocks:
             print("No stocks to report!")
+            # Create empty report for record keeping
+            os.makedirs(output_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            empty_file = os.path.join(output_dir, f"{file_prefix}_no_results_{timestamp}.txt")
+            with open(empty_file, 'w') as f:
+                f.write(f"Magic Formula Screening Results\n")
+                f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Result: No stocks passed the screening criteria\n")
+                f.write(f"Bond Yield: {self.indian_bond_yield}%\n")
+                f.write(f"EY Threshold: {self.indian_bond_yield + 4.0}%\n")
+            print(f"Empty results logged to: {empty_file}")
             return pd.DataFrame()
         
         # Create output directory if it doesn't exist
@@ -311,49 +317,50 @@ class MagicFormulaScreener:
         df.to_csv(csv_file, index=False)
         print(f"✅ Results saved to: {csv_file}")
         
-        # Save Excel with multiple sheets
-        with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
-            # Main results sheet
-            df.to_excel(writer, sheet_name='Magic Formula Results', index=False)
+        # Save Excel with multiple sheets (only if xlsxwriter is available)
+        try:
+            with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
+                # Main results sheet
+                df.to_excel(writer, sheet_name='Magic Formula Results', index=False)
+                
+                # Summary statistics sheet
+                summary_data = {
+                    'Metric': [
+                        'Stocks Passed Screening',
+                        'Average ROCE (%)',
+                        'Average EY (%)',
+                        'Average WACC (%)',
+                        'Bond Yield Used (%)',
+                        'EY Threshold (%)',
+                        'Median Market Cap (Cr)',
+                        'Top Stock ROCE (%)',
+                        'Top Stock EY (%)'
+                    ],
+                    'Value': [
+                        len(screened_stocks),
+                        round(df['ROCE (%)'].mean(), 2),
+                        round(df['Earning Yield (%)'].mean(), 2),
+                        round(df['WACC (%)'].mean(), 2),
+                        self.indian_bond_yield,
+                        round(self.indian_bond_yield + 4.0, 2),
+                        round(df['Market Cap (Cr)'].median(), 0),
+                        round(df['ROCE (%)'].max(), 2),
+                        round(df['Earning Yield (%)'].max(), 2)
+                    ]
+                }
+                summary_df = pd.DataFrame(summary_data)
+                summary_df.to_excel(writer, sheet_name='Summary Stats', index=False)
+                
+                # Top performers sheet
+                top_10 = df.head(10)[['Magic Formula Rank', 'Symbol', 'Company Name', 
+                                    'ROCE (%)', 'Earning Yield (%)', 'Combined Rank']]
+                top_10.to_excel(writer, sheet_name='Top 10 Picks', index=False)
             
-            # Summary statistics sheet
-            summary_data = {
-                'Metric': [
-                    'Total Stocks Analyzed',
-                    'Stocks Passed Screening',
-                    'Pass Rate (%)',
-                    'Average ROCE (%)',
-                    'Average EY (%)',
-                    'Average WACC (%)',
-                    'Bond Yield Used (%)',
-                    'EY Threshold (%)',
-                    'Median Market Cap (Cr)',
-                    'Top Stock ROCE (%)',
-                    'Top Stock EY (%)'
-                ],
-                'Value': [
-                    len(screened_stocks),
-                    len(screened_stocks),
-                    round(len(screened_stocks) * 100, 2),  # Will be updated with total analyzed
-                    round(df['ROCE (%)'].mean(), 2),
-                    round(df['Earning Yield (%)'].mean(), 2),
-                    round(df['WACC (%)'].mean(), 2),
-                    self.indian_bond_yield,
-                    round(self.indian_bond_yield + 4.0, 2),
-                    round(df['Market Cap (Cr)'].median(), 0),
-                    round(df['ROCE (%)'].max(), 2),
-                    round(df['Earning Yield (%)'].max(), 2)
-                ]
-            }
-            summary_df = pd.DataFrame(summary_data)
-            summary_df.to_excel(writer, sheet_name='Summary Stats', index=False)
+            print(f"✅ Detailed Excel report saved to: {excel_file}")
             
-            # Top performers sheet
-            top_10 = df.head(10)[['Magic Formula Rank', 'Symbol', 'Company Name', 
-                                'ROCE (%)', 'Earning Yield (%)', 'Combined Rank']]
-            top_10.to_excel(writer, sheet_name='Top 10 Picks', index=False)
-        
-        print(f"✅ Detailed Excel report saved to: {excel_file}")
+        except ImportError:
+            print(f"⚠️  xlsxwriter not available. Install with: pip install xlsxwriter")
+            print(f"📊 CSV file saved instead: {csv_file}")
         
         # Create a summary text report
         txt_file = os.path.join(output_dir, f"{file_prefix}_summary_{timestamp}.txt")
@@ -445,7 +452,13 @@ def main():
         print(f"EY Margin: 4.0%")
         print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
         
-        df = screener.generate_report(screened_stocks, 'magic_formula_results.csv')
+        # Generate comprehensive reports
+        df = screener.generate_report(
+            screened_stocks, 
+            output_dir="magic_formula_results",
+            file_prefix="project_summit_screening"
+        )
+        
         print(df.to_string(index=False))
         
         print(f"\n=== TOP 5 MAGIC FORMULA PICKS ===")
@@ -456,6 +469,13 @@ def main():
     else:
         print("No stocks passed the Magic Formula screening criteria.")
         print("Consider adjusting the filters or expanding the stock universe.")
+        
+        # Save empty results for record keeping
+        screener.generate_report(
+            [], 
+            output_dir="magic_formula_results",
+            file_prefix="project_summit_screening_empty"
+        )
 
 if __name__ == "__main__":
     main()
