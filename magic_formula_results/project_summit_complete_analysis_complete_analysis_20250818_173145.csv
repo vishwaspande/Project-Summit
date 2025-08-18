@@ -1,0 +1,21 @@
+Symbol,Company Name,Passed Screening,Failure Reason,Magic Formula Rank,ROCE (%),Earning Yield (%),WACC (%),Market Cap (Cr),P/E Ratio,ROCE Rank,EY Rank,Combined Rank,ROCE vs WACC,EY vs Bond+4%,Net Income (Cr),Total Assets (Cr),Current Liabilities (Cr),EBIT (Cr),Beta,Debt to Equity
+RELIANCE.NS,Reliance Industries Limited,NO,EY (3.72%) <= Bond Yield + Margin (10.43%),N/A,8.71,3.72,8.21,1869785.0,26.85,N/A,N/A,N/A,+0.5%,+-6.71%,69648.0,1950121.0,453737.0,130286.0,0.22,0.23
+TCS.NS,Tata Consultancy Services Limited,NO,EY (4.46%) <= Bond Yield + Margin (10.43%),N/A,62.02,4.46,8.55,1089479.0,22.44,N/A,N/A,N/A,+53.46%,+-5.97%,48553.0,159629.0,53001.0,66127.0,0.33,0.06
+HDFCBANK.NS,HDFC Bank Limited,NO,ROCE (0.00%) <= WACC (10.53%); EY (4.38%) <= Bond Yield + Margin (10.43%),N/A,0.0,4.38,10.53,1537747.0,22.83,N/A,N/A,N/A,N/A,+-6.05%,67350.83,4818767.11,0.0,0.0,0.62,0.18
+INFY.NS,Infosys Limited,NO,EY (0.05%) <= Bond Yield + Margin (10.43%),N/A,36.24,0.05,8.63,595178.0,1884.67,N/A,N/A,N/A,+27.6%,+-10.38%,315.8,1741.9,501.2,449.6,0.35,0.06
+ICICIBANK.NS,ICICI Bank Limited,NO,ROCE (0.00%) <= WACC (9.58%); EY (4.98%) <= Bond Yield + Margin (10.43%),N/A,0.0,4.98,9.58,1024194.0,20.07,N/A,N/A,N/A,N/A,+-5.45%,51029.2,2642241.41,0.0,0.0,0.49,0.09
+HDFC.NS,HDFC.NS,NO,Data fetch failed,N/A,0.0,0.0,0.0,0.0,N/A,N/A,N/A,N/A,N/A,N/A,0.0,0.0,0.0,0.0,1.0,0.0
+KOTAKBANK.NS,Kotak Mahindra Bank Limited,NO,ROCE (0.00%) <= WACC (8.92%); EY (5.56%) <= Bond Yield + Margin (10.43%),N/A,0.0,5.56,8.92,397942.0,17.99,N/A,N/A,N/A,N/A,+-4.87%,22125.99,879774.34,0.0,0.0,0.38,0.11
+HINDUNILVR.NS,Hindustan Unilever Limited,NO,EY (1.76%) <= Bond Yield + Margin (10.43%),N/A,23.38,1.76,8.69,603971.0,56.72,N/A,N/A,N/A,+14.69%,+-8.67%,10649.0,79880.0,16537.0,14810.0,0.37,0.02
+SBIN.NS,State Bank of India,NO,ROCE (0.00%) <= WACC (9.57%); EY (10.15%) <= Bond Yield + Margin (10.43%),N/A,0.0,10.15,9.57,763972.0,9.85,N/A,N/A,N/A,N/A,+-0.28%,77561.34,7314185.34,0.0,0.0,0.49,0.09
+BHARTIARTL.NS,Bharti Airtel Limited,NO,EY (2.96%) <= Bond Yield + Margin (10.43%),N/A,16.77,2.96,8.78,1134447.0,33.81,N/A,N/A,N/A,+7.99%,+-7.47%,33556.1,514360.4,180440.2,56012.6,0.15,0.71
+ITC.NS,ITC Limited,NO,EY (6.83%) <= Bond Yield + Margin (10.43%),N/A,36.57,6.83,7.43,508907.0,14.65,N/A,N/A,N/A,+29.14%,+-3.6%,34746.63,88090.68,14334.11,26972.0,0.06,0.0
+ASIANPAINT.NS,Asian Paints Limited,NO,EY (1.48%) <= Bond Yield + Margin (10.43%),N/A,23.98,1.48,8.94,248073.0,67.65,N/A,N/A,N/A,+15.04%,+-8.95%,3667.23,30371.37,8141.23,5330.09,0.39,0.08
+LT.NS,Larsen & Toubro Limited,NO,EY (3.01%) <= Bond Yield + Margin (10.43%),N/A,15.16,3.01,10.48,499957.0,33.25,N/A,N/A,N/A,+4.67%,+-7.42%,15037.11,379524.1,201970.9,26909.63,0.5,0.54
+AXISBANK.NS,Axis Bank Limited,NO,ROCE (0.00%) <= WACC (9.59%); EY (8.35%) <= Bond Yield + Margin (10.43%),N/A,0.0,8.35,9.59,335846.0,11.97,N/A,N/A,N/A,N/A,+-2.08%,28055.11,1656962.61,0.0,0.0,0.48,0.15
+DMART.NS,Avenue Supermarts Limited,NO,EY (0.91%) <= Bond Yield + Margin (10.43%),N/A,16.93,0.91,9.09,296604.0,109.53,N/A,N/A,N/A,+7.84%,+-9.52%,2708.02,24320.29,2212.16,3742.12,0.43,0.03
+MARUTI.NS,Maruti Suzuki India Limited,NO,EY (3.28%) <= Bond Yield + Margin (10.43%),N/A,19.54,3.28,7.57,442302.0,30.5,N/A,N/A,N/A,+11.98%,+-7.15%,14500.2,131971.8,30570.5,19814.2,0.19,0.0
+SUNPHARMA.NS,Sun Pharmaceutical Industries Limited,NO,EY (2.79%) <= Bond Yield + Margin (10.43%),N/A,18.92,2.79,8.36,391739.0,35.84,N/A,N/A,N/A,+10.56%,+-7.64%,10929.04,92100.58,18194.21,13983.49,0.31,0.03
+ULTRACEMCO.NS,UltraTech Cement Limited,NO,ROCE (9.06%) <= WACC (9.45%); EY (1.61%) <= Bond Yield + Margin (10.43%),N/A,9.06,1.61,9.45,375486.0,62.18,N/A,N/A,N/A,+-0.39%,+-8.82%,6039.11,133697.15,32364.97,9178.67,0.43,0.22
+TITAN.NS,Titan Company Limited,NO,EY (1.06%) <= Bond Yield + Margin (10.43%),N/A,36.95,1.06,10.3,315327.0,94.49,N/A,N/A,N/A,+26.64%,+-9.37%,3337.0,40647.0,25793.0,5488.0,0.3,1.05
+NESTLEIND.NS,Nestlé India Limited,NO,EY (1.45%) <= Bond Yield + Margin (10.43%),N/A,59.3,1.45,8.08,220618.0,68.78,N/A,N/A,N/A,+51.22%,+-8.98%,3207.59,12193.32,4685.35,4452.13,0.24,0.11

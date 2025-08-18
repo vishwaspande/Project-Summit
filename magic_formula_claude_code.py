@@ -504,7 +504,7 @@ def main():
     # Sample Indian stock symbols (Nifty 50 components)
     sample_stocks = [
         'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
-        'HDFC.NS', 'KOTAKBANK.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS',
+        'HDFC.NS', 'LIC.NS', 'HINDUNILVR.NS', 'NMDC.NS', 'COAL.NS',
         'ITC.NS', 'ASIANPAINT.NS', 'LT.NS', 'AXISBANK.NS', 'DMART.NS',
         'MARUTI.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'TITAN.NS', 'NESTLEIND.NS'
     ]
