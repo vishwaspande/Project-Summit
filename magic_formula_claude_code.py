@@ -169,7 +169,7 @@ class MagicFormulaScreener:
             return None
     
     def screen_stocks(self, stock_symbols: List[str], 
-                     ey_margin: float = 3.0,
+                     ey_margin: float = 4.0,
                      min_market_cap: float = 1000000000) -> List[StockMetrics]:
         """
         Screen stocks using Magic Formula with additional filters
@@ -254,36 +254,158 @@ class MagicFormulaScreener:
         return screened_stocks
     
     def generate_report(self, screened_stocks: List[StockMetrics], 
-                       output_file: str = None) -> pd.DataFrame:
+                       output_dir: str = "magic_formula_results",
+                       file_prefix: str = "magic_formula") -> pd.DataFrame:
+    def generate_report(self, screened_stocks: List[StockMetrics], 
+                       output_dir: str = "magic_formula_results",
+                       file_prefix: str = "magic_formula") -> pd.DataFrame:
         """
-        Generate a detailed report of screened stocks
+        Generate comprehensive reports in multiple formats
+        
+        Args:
+            screened_stocks: List of screened stocks
+            output_dir: Directory to save files (default: magic_formula_results)
+            file_prefix: Prefix for output files (default: magic_formula)
+        
+        Returns:
+            DataFrame with results
         """
+        import os
+        from datetime import datetime
+        
         if not screened_stocks:
             print("No stocks to report!")
             return pd.DataFrame()
         
-        # Create DataFrame
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Generate timestamp for unique filenames
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Create main results DataFrame
         data = []
         for i, stock in enumerate(screened_stocks, 1):
             data.append({
                 'Magic Formula Rank': i,
                 'Symbol': stock.symbol,
                 'Company Name': stock.company_name,
-                'ROCE (%)': f"{stock.roce:.2f}",
-                'Earning Yield (%)': f"{stock.earning_yield:.2f}",
-                'WACC (%)': f"{stock.wacc:.2f}",
-                'Market Cap (Cr)': f"{stock.market_cap/10000000:.0f}",
+                'ROCE (%)': round(stock.roce, 2),
+                'Earning Yield (%)': round(stock.earning_yield, 2),
+                'WACC (%)': round(stock.wacc, 2),
+                'Market Cap (Cr)': round(stock.market_cap/10000000, 0),
                 'ROCE Rank': stock.roce_rank,
                 'EY Rank': stock.ey_rank,
-                'Combined Rank': stock.combined_rank
+                'Combined Rank': stock.combined_rank,
+                'ROCE vs WACC': f"+{round(stock.roce - stock.wacc, 2)}%",
+                'EY vs Bond+4%': f"+{round(stock.earning_yield - (self.indian_bond_yield + 4.0), 2)}%"
             })
         
         df = pd.DataFrame(data)
         
-        # Save to file if specified
-        if output_file:
-            df.to_csv(output_file, index=False)
-            print(f"Report saved to {output_file}")
+        # Save main results in multiple formats
+        csv_file = os.path.join(output_dir, f"{file_prefix}_results_{timestamp}.csv")
+        excel_file = os.path.join(output_dir, f"{file_prefix}_results_{timestamp}.xlsx")
+        
+        # Save CSV
+        df.to_csv(csv_file, index=False)
+        print(f"✅ Results saved to: {csv_file}")
+        
+        # Save Excel with multiple sheets
+        with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
+            # Main results sheet
+            df.to_excel(writer, sheet_name='Magic Formula Results', index=False)
+            
+            # Summary statistics sheet
+            summary_data = {
+                'Metric': [
+                    'Total Stocks Analyzed',
+                    'Stocks Passed Screening',
+                    'Pass Rate (%)',
+                    'Average ROCE (%)',
+                    'Average EY (%)',
+                    'Average WACC (%)',
+                    'Bond Yield Used (%)',
+                    'EY Threshold (%)',
+                    'Median Market Cap (Cr)',
+                    'Top Stock ROCE (%)',
+                    'Top Stock EY (%)'
+                ],
+                'Value': [
+                    len(screened_stocks),
+                    len(screened_stocks),
+                    round(len(screened_stocks) * 100, 2),  # Will be updated with total analyzed
+                    round(df['ROCE (%)'].mean(), 2),
+                    round(df['Earning Yield (%)'].mean(), 2),
+                    round(df['WACC (%)'].mean(), 2),
+                    self.indian_bond_yield,
+                    round(self.indian_bond_yield + 4.0, 2),
+                    round(df['Market Cap (Cr)'].median(), 0),
+                    round(df['ROCE (%)'].max(), 2),
+                    round(df['Earning Yield (%)'].max(), 2)
+                ]
+            }
+            summary_df = pd.DataFrame(summary_data)
+            summary_df.to_excel(writer, sheet_name='Summary Stats', index=False)
+            
+            # Top performers sheet
+            top_10 = df.head(10)[['Magic Formula Rank', 'Symbol', 'Company Name', 
+                                'ROCE (%)', 'Earning Yield (%)', 'Combined Rank']]
+            top_10.to_excel(writer, sheet_name='Top 10 Picks', index=False)
+        
+        print(f"✅ Detailed Excel report saved to: {excel_file}")
+        
+        # Create a summary text report
+        txt_file = os.path.join(output_dir, f"{file_prefix}_summary_{timestamp}.txt")
+        with open(txt_file, 'w') as f:
+            f.write("=" * 60 + "\n")
+            f.write("MAGIC FORMULA STOCK SCREENING REPORT\n")
+            f.write("=" * 60 + "\n")
+            f.write(f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Bond Yield Used: {self.indian_bond_yield}%\n")
+            f.write(f"EY Threshold: {self.indian_bond_yield + 4.0}%\n")
+            f.write(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n\n")
+            
+            f.write("SCREENING RESULTS:\n")
+            f.write("-" * 30 + "\n")
+            f.write(f"Stocks Passed Screening: {len(screened_stocks)}\n")
+            f.write(f"Average ROCE: {round(df['ROCE (%)'].mean(), 2)}%\n")
+            f.write(f"Average Earning Yield: {round(df['Earning Yield (%)'].mean(), 2)}%\n")
+            f.write(f"Average WACC: {round(df['WACC (%)'].mean(), 2)}%\n\n")
+            
+            f.write("TOP 5 MAGIC FORMULA PICKS:\n")
+            f.write("-" * 40 + "\n")
+            for i, stock in enumerate(screened_stocks[:5], 1):
+                f.write(f"{i}. {stock.company_name} ({stock.symbol})\n")
+                f.write(f"   ROCE: {stock.roce:.2f}% | EY: {stock.earning_yield:.2f}% | Rank: {stock.combined_rank}\n")
+                f.write(f"   Market Cap: {stock.market_cap/10000000:.0f} Cr\n\n")
+            
+            if len(screened_stocks) > 5:
+                f.write("COMPLETE RANKINGS:\n")
+                f.write("-" * 20 + "\n")
+                for i, stock in enumerate(screened_stocks, 1):
+                    f.write(f"{i:2d}. {stock.symbol:12s} | ROCE: {stock.roce:5.1f}% | EY: {stock.earning_yield:5.1f}%\n")
+        
+        print(f"✅ Summary report saved to: {txt_file}")
+        
+        # Create a detailed log file for debugging
+        log_file = os.path.join(output_dir, f"{file_prefix}_detailed_log_{timestamp}.txt")
+        with open(log_file, 'w') as f:
+            f.write("DETAILED SCREENING LOG\n")
+            f.write("=" * 50 + "\n\n")
+            for stock in screened_stocks:
+                f.write(f"Company: {stock.company_name} ({stock.symbol})\n")
+                f.write(f"Market Cap: ₹{stock.market_cap/10000000:.0f} Cr\n")
+                f.write(f"ROCE: {stock.roce:.2f}% (Rank: {stock.roce_rank})\n")
+                f.write(f"Earning Yield: {stock.earning_yield:.2f}% (Rank: {stock.ey_rank})\n")
+                f.write(f"WACC: {stock.wacc:.2f}%\n")
+                f.write(f"ROCE vs WACC: +{stock.roce - stock.wacc:.2f}%\n")
+                f.write(f"EY vs Threshold: +{stock.earning_yield - (self.indian_bond_yield + 4.0):.2f}%\n")
+                f.write(f"Combined Magic Formula Rank: {stock.combined_rank}\n")
+                f.write("-" * 50 + "\n")
+        
+        print(f"✅ Detailed log saved to: {log_file}")
+        print(f"\n📁 All files saved in directory: {output_dir}")
         
         return df
 
@@ -300,7 +422,7 @@ def main():
     # Sample Indian stock symbols (Nifty 50 components)
     sample_stocks = [
         'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
-        'HDFC.NS', 'LIC.NS', 'COAL.NS', 'SBIN.NS', 'NMDC.NS',
+        'HDFC.NS', 'KOTAKBANK.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS',
         'ITC.NS', 'ASIANPAINT.NS', 'LT.NS', 'AXISBANK.NS', 'DMART.NS',
         'MARUTI.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'TITAN.NS', 'NESTLEIND.NS'
     ]
