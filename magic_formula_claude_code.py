@@ -1,54 +1,4 @@
-# Screen stocks
-    screened_stocks, all_stocks = screener.screen_stocks(
-        stock_symbols=sample_stocks,
-        ey_margin=4.0,  # EY > Bond Yield + 4%
-        min_market_cap=10000000000  # 1000 Cr minimum market cap
-    )
-    
-    # Generate comprehensive report with ALL data
-    print(f"\n=== COMPLETE ANALYSIS RESULTS ===")
-    print(f"Total stocks analyzed: {len(all_stocks)}")
-    print(f"Stocks passed screening: {len(screened_stocks)}")
-    print(f"Stocks failed screening: {len(all_stocks) - len(screened_stocks)}")
-    print(f"Pass rate: {(len(screened_stocks) / len(all_stocks)) * 100:.1f}%" if all_stocks else "0%")
-    print(f"Bond Yield used: {screener.indian_bond_yield}%")
-    print(f"EY Threshold: {screener.indian_bond_yield + 4.0}%")
-    print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
-    
-    # Generate comprehensive reports including failed stocks
-    df = screener.generate_report(
-        screened_stocks, 
-        all_stocks,
-        output_dir="magic_formula_results",
-        file_prefix="project_summit_complete_analysis"
-    )
-    
-    if screened_stocks:
-        print(f"\n=== TOP 5 MAGIC FORMULA PICKS ===")
-        for i, stock in enumerate(screened_stocks[:5], 1):
-            print(f"{i}. {stock.company_name} ({stock.symbol})")
-            print(f"   ROCE: {stock.roce:.2f}% | EY: {stock.earning_yield:.2f}% | Combined Rank: {stock.combined_rank}")
-    
-    # Show failure analysis
-    failed_stocks = [stock for stock in all_stocks if not stock.passed_screening]
-    if failed_stocks:
-        print(f"\n=== FAILURE ANALYSIS ===")
-        failure_reasons = {}
-        for stock in failed_stocks:
-            if stock.filter_failure_reason in failure_reasons:
-                failure_reasons[stock.filter_failure_reason] += 1
-            else:
-                failure_reasons[stock.filter_failure_reason] = 1
-        
-        print("Most common failure reasons:")
-        for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
-            print(f"  • {reason}: {count} stocks")
-    
-    print(f"\n📊 Complete analysis saved with ALL stock data for your analysis!")
-    print(f"💡 Check Excel file for detailed breakdown of passed and failed stocks.")
-
-if __name__ == "__main__":
-    main()import pandas as pd
+import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -355,33 +305,23 @@ class MagicFormulaScreener:
         
         return screened_stocks, all_stocks
     
-    def generate_report(self, screened_stocks: List[StockMetrics], 
+    def generate_report(self, screened_stocks: List[StockMetrics], all_stocks: List[StockMetrics],
                        output_dir: str = "magic_formula_results",
                        file_prefix: str = "magic_formula") -> pd.DataFrame:
         """
         Generate comprehensive reports in multiple formats
         
         Args:
-            screened_stocks: List of screened stocks
+            screened_stocks: List of stocks that passed screening
+            all_stocks: List of all stocks analyzed (passed + failed)
             output_dir: Directory to save files (default: magic_formula_results)
             file_prefix: Prefix for output files (default: magic_formula)
         
         Returns:
-            DataFrame with results
+            DataFrame with all results
         """
-        if not screened_stocks:
-            print("No stocks to report!")
-            # Create empty report for record keeping
-            os.makedirs(output_dir, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            empty_file = os.path.join(output_dir, f"{file_prefix}_no_results_{timestamp}.txt")
-            with open(empty_file, 'w') as f:
-                f.write(f"Magic Formula Screening Results\n")
-                f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Result: No stocks passed the screening criteria\n")
-                f.write(f"Bond Yield: {self.indian_bond_yield}%\n")
-                f.write(f"EY Threshold: {self.indian_bond_yield + 4.0}%\n")
-            print(f"Empty results logged to: {empty_file}")
+        if not all_stocks:
+            print("No stocks were analyzed!")
             return pd.DataFrame()
         
         # Create output directory if it doesn't exist
@@ -390,10 +330,39 @@ class MagicFormulaScreener:
         # Generate timestamp for unique filenames
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Create main results DataFrame
-        data = []
+        # Create comprehensive DataFrame with ALL stocks
+        all_data = []
+        for stock in all_stocks:
+            all_data.append({
+                'Symbol': stock.symbol,
+                'Company Name': stock.company_name,
+                'Passed Screening': 'YES' if stock.passed_screening else 'NO',
+                'Failure Reason': stock.filter_failure_reason if not stock.passed_screening else 'PASSED',
+                'Magic Formula Rank': stock.combined_rank if stock.passed_screening else 'N/A',
+                'ROCE (%)': round(stock.roce, 2),
+                'Earning Yield (%)': round(stock.earning_yield, 2),
+                'WACC (%)': round(stock.wacc, 2),
+                'Market Cap (Cr)': round(stock.market_cap/10000000, 0) if stock.market_cap > 0 else 0,
+                'P/E Ratio': round(stock.pe_ratio, 2) if stock.pe_ratio > 0 else 'N/A',
+                'ROCE Rank': stock.roce_rank if stock.passed_screening else 'N/A',
+                'EY Rank': stock.ey_rank if stock.passed_screening else 'N/A',
+                'Combined Rank': stock.combined_rank if stock.passed_screening else 'N/A',
+                'ROCE vs WACC': f"+{round(stock.roce - stock.wacc, 2)}%" if stock.roce > 0 and stock.wacc > 0 else 'N/A',
+                'EY vs Bond+4%': f"+{round(stock.earning_yield - (self.indian_bond_yield + 4.0), 2)}%" if stock.earning_yield > 0 else 'N/A',
+                'Net Income (Cr)': round(stock.net_income/10000000, 2) if stock.net_income != 0 else 0,
+                'Total Assets (Cr)': round(stock.total_assets/10000000, 2) if stock.total_assets != 0 else 0,
+                'Current Liabilities (Cr)': round(stock.current_liabilities/10000000, 2) if stock.current_liabilities != 0 else 0,
+                'EBIT (Cr)': round(stock.ebit/10000000, 2) if stock.ebit != 0 else 0,
+                'Beta': round(stock.beta, 2),
+                'Debt to Equity': round(stock.debt_to_equity, 2)
+            })
+        
+        all_df = pd.DataFrame(all_data)
+        
+        # Create passed stocks DataFrame
+        passed_data = []
         for i, stock in enumerate(screened_stocks, 1):
-            data.append({
+            passed_data.append({
                 'Magic Formula Rank': i,
                 'Symbol': stock.symbol,
                 'Company Name': stock.company_name,
@@ -401,23 +370,19 @@ class MagicFormulaScreener:
                 'Earning Yield (%)': round(stock.earning_yield, 2),
                 'WACC (%)': round(stock.wacc, 2),
                 'Market Cap (Cr)': round(stock.market_cap/10000000, 0),
-                'ROCE Rank': stock.roce_rank,
-                'EY Rank': stock.ey_rank,
                 'Combined Rank': stock.combined_rank,
                 'ROCE vs WACC': f"+{round(stock.roce - stock.wacc, 2)}%",
                 'EY vs Bond+4%': f"+{round(stock.earning_yield - (self.indian_bond_yield + 4.0), 2)}%"
             })
         
-        df = pd.DataFrame(data)
+        passed_df = pd.DataFrame(passed_data) if screened_stocks else pd.DataFrame()
         
         # File paths
-        csv_file = os.path.join(output_dir, f"{file_prefix}_results_{timestamp}.csv")
-        excel_file = os.path.join(output_dir, f"{file_prefix}_results_{timestamp}.xlsx")
+        csv_file = os.path.join(output_dir, f"{file_prefix}_complete_analysis_{timestamp}.csv")
+        excel_file = os.path.join(output_dir, f"{file_prefix}_complete_analysis_{timestamp}.xlsx")
         
-        # PRIORITY: Save Excel file first
+        # PRIORITY: Save Excel file with multiple sheets
         excel_saved = False
-        
-        # Try multiple Excel engines
         excel_engines = ['xlsxwriter', 'openpyxl']
         
         for engine in excel_engines:
@@ -425,48 +390,60 @@ class MagicFormulaScreener:
                 print(f"Attempting to save Excel using {engine} engine...")
                 
                 with pd.ExcelWriter(excel_file, engine=engine) as writer:
-                    # Main results sheet
-                    df.to_excel(writer, sheet_name='Magic Formula Results', index=False)
+                    # Sheet 1: ALL STOCKS ANALYZED
+                    all_df.to_excel(writer, sheet_name='All Stocks Analyzed', index=False)
                     
-                    # Summary statistics sheet
+                    # Sheet 2: PASSED STOCKS ONLY (if any)
+                    if not passed_df.empty:
+                        passed_df.to_excel(writer, sheet_name='Passed Magic Formula', index=False)
+                    
+                    # Sheet 3: FAILED STOCKS ONLY
+                    failed_df = all_df[all_df['Passed Screening'] == 'NO']
+                    if not failed_df.empty:
+                        failed_df.to_excel(writer, sheet_name='Failed Screening', index=False)
+                    
+                    # Sheet 4: SUMMARY STATISTICS
                     summary_data = {
                         'Metric': [
+                            'Total Stocks Analyzed',
                             'Stocks Passed Screening',
-                            'Average ROCE (%)',
-                            'Average EY (%)',
-                            'Average WACC (%)',
+                            'Stocks Failed Screening',
+                            'Pass Rate (%)',
+                            'Average ROCE - All Stocks (%)',
+                            'Average EY - All Stocks (%)',
+                            'Average WACC - All Stocks (%)',
                             'Bond Yield Used (%)',
                             'EY Threshold (%)',
-                            'Median Market Cap (Cr)',
-                            'Top Stock ROCE (%)',
-                            'Top Stock EY (%)'
+                            'Median Market Cap - All (Cr)',
+                            'Highest ROCE (%)',
+                            'Highest EY (%)',
+                            'Main Failure Reason'
                         ],
                         'Value': [
+                            len(all_stocks),
                             len(screened_stocks),
-                            round(df['ROCE (%)'].mean(), 2),
-                            round(df['Earning Yield (%)'].mean(), 2),
-                            round(df['WACC (%)'].mean(), 2),
+                            len(all_stocks) - len(screened_stocks),
+                            round((len(screened_stocks) / len(all_stocks)) * 100, 2) if all_stocks else 0,
+                            round(all_df['ROCE (%)'].mean(), 2),
+                            round(all_df['Earning Yield (%)'].mean(), 2),
+                            round(all_df['WACC (%)'].mean(), 2),
                             self.indian_bond_yield,
                             round(self.indian_bond_yield + 4.0, 2),
-                            round(df['Market Cap (Cr)'].median(), 0),
-                            round(df['ROCE (%)'].max(), 2),
-                            round(df['Earning Yield (%)'].max(), 2)
+                            round(all_df['Market Cap (Cr)'].median(), 0),
+                            round(all_df['ROCE (%)'].max(), 2),
+                            round(all_df['Earning Yield (%)'].max(), 2),
+                            all_df['Failure Reason'].value_counts().index[0] if len(all_df[all_df['Passed Screening'] == 'NO']) > 0 else 'N/A'
                         ]
                     }
                     summary_df = pd.DataFrame(summary_data)
-                    summary_df.to_excel(writer, sheet_name='Summary Stats', index=False)
+                    summary_df.to_excel(writer, sheet_name='Summary Statistics', index=False)
                     
-                    # Top performers sheet
-                    top_10 = df.head(10)[['Magic Formula Rank', 'Symbol', 'Company Name', 
-                                        'ROCE (%)', 'Earning Yield (%)', 'Combined Rank']]
-                    top_10.to_excel(writer, sheet_name='Top 10 Picks', index=False)
-                    
-                    # If using xlsxwriter, add formatting
+                    # Apply formatting if using xlsxwriter
                     if engine == 'xlsxwriter':
                         workbook = writer.book
-                        worksheet = writer.sheets['Magic Formula Results']
                         
-                        # Add header formatting
+                        # Format All Stocks sheet
+                        worksheet_all = writer.sheets['All Stocks Analyzed']
                         header_format = workbook.add_format({
                             'bold': True,
                             'text_wrap': True,
@@ -475,57 +452,44 @@ class MagicFormulaScreener:
                             'border': 1
                         })
                         
-                        # Apply header formatting
-                        for col_num, value in enumerate(df.columns.values):
-                            worksheet.write(0, col_num, value, header_format)
+                        # Color code passed/failed
+                        pass_format = workbook.add_format({'fg_color': '#C6EFCE'})  # Light green
+                        fail_format = workbook.add_format({'fg_color': '#FFC7CE'})  # Light red
                         
-                        # Auto-adjust column widths
-                        for i, col in enumerate(df.columns):
-                            column_len = max(df[col].astype(str).str.len().max(), len(col))
-                            worksheet.set_column(i, i, min(column_len + 2, 50))
+                        # Apply header formatting
+                        for col_num, value in enumerate(all_df.columns.values):
+                            worksheet_all.write(0, col_num, value, header_format)
+                            worksheet_all.set_column(col_num, col_num, 15)  # Set column width
                 
-                print(f"✅ EXCEL FILE SAVED SUCCESSFULLY: {excel_file}")
+                print(f"✅ COMPLETE EXCEL ANALYSIS SAVED: {excel_file}")
                 print(f"📊 Excel engine used: {engine}")
                 excel_saved = True
                 break
                 
-            except ImportError as e:
-                print(f"⚠️  {engine} not available: {e}")
+            except ImportError:
+                print(f"⚠️  {engine} not available")
                 continue
             except Exception as e:
                 print(f"❌ Error with {engine}: {e}")
                 continue
         
-        # If Excel failed, save CSV as backup
+        # Save CSV backup of all data
+        all_df.to_csv(csv_file, index=False)
+        print(f"📄 Complete CSV saved: {csv_file}")
+        
         if not excel_saved:
-            print(f"⚠️  Excel save failed. Installing required packages...")
-            print(f"Run: pip install xlsxwriter openpyxl")
-            df.to_csv(csv_file, index=False)
-            print(f"📄 CSV backup saved: {csv_file}")
-        else:
-            # Also save CSV for compatibility
-            df.to_csv(csv_file, index=False)
-            print(f"📄 CSV backup also saved: {csv_file}")
+            print(f"⚠️  Excel save failed. Install: pip install xlsxwriter openpyxl")
         
-        # Create summary text report (minimal)
-        txt_file = os.path.join(output_dir, f"{file_prefix}_summary_{timestamp}.txt")
-        with open(txt_file, 'w') as f:
-            f.write("MAGIC FORMULA SCREENING SUMMARY\n")
-            f.write("=" * 40 + "\n")
-            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Stocks Passed: {len(screened_stocks)}\n")
-            f.write(f"Bond Yield: {self.indian_bond_yield}%\n")
-            f.write(f"EY Threshold: {self.indian_bond_yield + 4.0}%\n\n")
-            
-            f.write("TOP 5 PICKS:\n")
-            f.write("-" * 20 + "\n")
-            for i, stock in enumerate(screened_stocks[:5], 1):
-                f.write(f"{i}. {stock.symbol} - ROCE: {stock.roce:.1f}%, EY: {stock.earning_yield:.1f}%\n")
+        # Print summary
+        print(f"\n📊 ANALYSIS SUMMARY:")
+        print(f"Total stocks analyzed: {len(all_stocks)}")
+        print(f"Stocks passed screening: {len(screened_stocks)}")
+        print(f"Stocks failed screening: {len(all_stocks) - len(screened_stocks)}")
+        print(f"Pass rate: {(len(screened_stocks) / len(all_stocks)) * 100:.1f}%")
         
-        print(f"📝 Summary saved: {txt_file}")
         print(f"\n🎯 MAIN OUTPUT: {excel_file if excel_saved else csv_file}")
         
-        return df
+        return all_df
 
 # Example usage
 def main():
@@ -549,44 +513,53 @@ def main():
     print("Note: This is a demo with sample stocks. Replace with your stock universe.\n")
     
     # Screen stocks
-    screened_stocks = screener.screen_stocks(
+    screened_stocks, all_stocks = screener.screen_stocks(
         stock_symbols=sample_stocks,
         ey_margin=4.0,  # EY > Bond Yield + 4%
         min_market_cap=10000000000  # 1000 Cr minimum market cap
     )
     
-    # Generate report
+    # Generate comprehensive report with ALL data
+    print(f"\n=== COMPLETE ANALYSIS RESULTS ===")
+    print(f"Total stocks analyzed: {len(all_stocks)}")
+    print(f"Stocks passed screening: {len(screened_stocks)}")
+    print(f"Stocks failed screening: {len(all_stocks) - len(screened_stocks)}")
+    print(f"Pass rate: {(len(screened_stocks) / len(all_stocks)) * 100:.1f}%" if all_stocks else "0%")
+    print(f"Bond Yield used: {screener.indian_bond_yield}%")
+    print(f"EY Threshold: {screener.indian_bond_yield + 4.0}%")
+    print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
+    
+    # Generate comprehensive reports including failed stocks
+    df = screener.generate_report(
+        screened_stocks, 
+        all_stocks,
+        output_dir="magic_formula_results",
+        file_prefix="project_summit_complete_analysis"
+    )
+    
     if screened_stocks:
-        print(f"\n=== MAGIC FORMULA RESULTS ===")
-        print(f"Stocks passed screening: {len(screened_stocks)}")
-        print(f"Bond Yield used: {screener.indian_bond_yield}%")
-        print(f"EY Margin: 4.0%")
-        print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
-        
-        # Generate comprehensive reports
-        df = screener.generate_report(
-            screened_stocks, 
-            output_dir="magic_formula_results",
-            file_prefix="project_summit_screening"
-        )
-        
-        print(df.to_string(index=False))
-        
         print(f"\n=== TOP 5 MAGIC FORMULA PICKS ===")
         for i, stock in enumerate(screened_stocks[:5], 1):
             print(f"{i}. {stock.company_name} ({stock.symbol})")
             print(f"   ROCE: {stock.roce:.2f}% | EY: {stock.earning_yield:.2f}% | Combined Rank: {stock.combined_rank}")
     
-    else:
-        print("No stocks passed the Magic Formula screening criteria.")
-        print("Consider adjusting the filters or expanding the stock universe.")
+    # Show failure analysis
+    failed_stocks = [stock for stock in all_stocks if not stock.passed_screening]
+    if failed_stocks:
+        print(f"\n=== FAILURE ANALYSIS ===")
+        failure_reasons = {}
+        for stock in failed_stocks:
+            if stock.filter_failure_reason in failure_reasons:
+                failure_reasons[stock.filter_failure_reason] += 1
+            else:
+                failure_reasons[stock.filter_failure_reason] = 1
         
-        # Save empty results for record keeping
-        screener.generate_report(
-            [], 
-            output_dir="magic_formula_results",
-            file_prefix="project_summit_screening_empty"
-        )
+        print("Most common failure reasons:")
+        for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
+            print(f"  • {reason}: {count} stocks")
+    
+    print(f"\n📊 Complete analysis saved with ALL stock data for your analysis!")
+    print(f"💡 Check Excel file for detailed breakdown of passed and failed stocks.")
 
 if __name__ == "__main__":
     main()
