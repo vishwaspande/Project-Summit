@@ -1,4 +1,54 @@
-import pandas as pd
+# Screen stocks
+    screened_stocks, all_stocks = screener.screen_stocks(
+        stock_symbols=sample_stocks,
+        ey_margin=4.0,  # EY > Bond Yield + 4%
+        min_market_cap=10000000000  # 1000 Cr minimum market cap
+    )
+    
+    # Generate comprehensive report with ALL data
+    print(f"\n=== COMPLETE ANALYSIS RESULTS ===")
+    print(f"Total stocks analyzed: {len(all_stocks)}")
+    print(f"Stocks passed screening: {len(screened_stocks)}")
+    print(f"Stocks failed screening: {len(all_stocks) - len(screened_stocks)}")
+    print(f"Pass rate: {(len(screened_stocks) / len(all_stocks)) * 100:.1f}%" if all_stocks else "0%")
+    print(f"Bond Yield used: {screener.indian_bond_yield}%")
+    print(f"EY Threshold: {screener.indian_bond_yield + 4.0}%")
+    print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
+    
+    # Generate comprehensive reports including failed stocks
+    df = screener.generate_report(
+        screened_stocks, 
+        all_stocks,
+        output_dir="magic_formula_results",
+        file_prefix="project_summit_complete_analysis"
+    )
+    
+    if screened_stocks:
+        print(f"\n=== TOP 5 MAGIC FORMULA PICKS ===")
+        for i, stock in enumerate(screened_stocks[:5], 1):
+            print(f"{i}. {stock.company_name} ({stock.symbol})")
+            print(f"   ROCE: {stock.roce:.2f}% | EY: {stock.earning_yield:.2f}% | Combined Rank: {stock.combined_rank}")
+    
+    # Show failure analysis
+    failed_stocks = [stock for stock in all_stocks if not stock.passed_screening]
+    if failed_stocks:
+        print(f"\n=== FAILURE ANALYSIS ===")
+        failure_reasons = {}
+        for stock in failed_stocks:
+            if stock.filter_failure_reason in failure_reasons:
+                failure_reasons[stock.filter_failure_reason] += 1
+            else:
+                failure_reasons[stock.filter_failure_reason] = 1
+        
+        print("Most common failure reasons:")
+        for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
+            print(f"  • {reason}: {count} stocks")
+    
+    print(f"\n📊 Complete analysis saved with ALL stock data for your analysis!")
+    print(f"💡 Check Excel file for detailed breakdown of passed and failed stocks.")
+
+if __name__ == "__main__":
+    main()import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -21,6 +71,16 @@ class StockMetrics:
     combined_rank: float
     roce_rank: int
     ey_rank: int
+    # New fields for complete analysis
+    passed_screening: bool = False
+    filter_failure_reason: str = ""
+    net_income: float = 0
+    total_assets: float = 0
+    current_liabilities: float = 0
+    ebit: float = 0
+    beta: float = 1.0
+    debt_to_equity: float = 0
+    pe_ratio: float = 0
 
 class MagicFormulaScreener:
     """
@@ -171,7 +231,7 @@ class MagicFormulaScreener:
     
     def screen_stocks(self, stock_symbols: List[str], 
                      ey_margin: float = 4.0,
-                     min_market_cap: float = 1000000000) -> List[StockMetrics]:
+                     min_market_cap: float = 1000000000) -> Tuple[List[StockMetrics], List[StockMetrics]]:
         """
         Screen stocks using Magic Formula with additional filters
         
@@ -181,7 +241,7 @@ class MagicFormulaScreener:
             min_market_cap: Minimum market cap filter (default 1B)
         
         Returns:
-            List of StockMetrics sorted by Magic Formula ranking
+            Tuple of (passed_stocks, all_stocks_analyzed)
         """
         print("Starting Magic Formula screening...")
         print(f"Screening {len(stock_symbols)} stocks...")
@@ -189,13 +249,30 @@ class MagicFormulaScreener:
         # Get bond yield
         bond_yield = self.get_indian_bond_yield()
         
-        screened_stocks = []
+        screened_stocks = []  # Stocks that passed
+        all_stocks = []       # All stocks analyzed
         
         for i, symbol in enumerate(stock_symbols, 1):
             print(f"Processing {i}/{len(stock_symbols)}: {symbol}")
             
             financial_data = self.fetch_stock_data(symbol)
             if not financial_data:
+                # Create entry for failed data fetch
+                failed_stock = StockMetrics(
+                    symbol=symbol,
+                    company_name=symbol,
+                    roce=0,
+                    earning_yield=0,
+                    wacc=0,
+                    market_cap=0,
+                    combined_rank=999,
+                    roce_rank=999,
+                    ey_rank=999,
+                    passed_screening=False,
+                    filter_failure_reason="Data fetch failed"
+                )
+                all_stocks.append(failed_stock)
+                print(f"  ❌ {symbol}: Data fetch failed")
                 continue
             
             # Calculate metrics
@@ -204,19 +281,10 @@ class MagicFormulaScreener:
             wacc = self.estimate_wacc(financial_data)
             market_cap = financial_data['market_cap']
             
-            # Apply filters
-            if market_cap < min_market_cap:
-                print(f"  Filtered out {symbol}: Market cap too small")
-                continue
-                
-            if roce <= wacc:
-                print(f"  Filtered out {symbol}: ROCE ({roce:.2f}%) <= WACC ({wacc:.2f}%)")
-                continue
-                
-            if earning_yield <= (bond_yield + ey_margin):
-                print(f"  Filtered out {symbol}: EY ({earning_yield:.2f}%) <= Bond Yield + Margin ({bond_yield + ey_margin:.2f}%)")
-                continue
+            # Calculate P/E ratio
+            pe_ratio = market_cap / financial_data['net_income'] if financial_data['net_income'] > 0 else 0
             
+            # Create comprehensive stock metrics
             stock_metric = StockMetrics(
                 symbol=symbol,
                 company_name=financial_data['company_name'],
@@ -224,35 +292,68 @@ class MagicFormulaScreener:
                 earning_yield=earning_yield,
                 wacc=wacc,
                 market_cap=market_cap,
-                combined_rank=0,  # Will be calculated later
-                roce_rank=0,      # Will be calculated later
-                ey_rank=0         # Will be calculated later
+                combined_rank=0,  # Will be calculated later for passed stocks
+                roce_rank=0,      # Will be calculated later for passed stocks
+                ey_rank=0,        # Will be calculated later for passed stocks
+                passed_screening=False,  # Will be updated if passes
+                filter_failure_reason="",
+                net_income=financial_data['net_income'],
+                total_assets=financial_data['total_assets'],
+                current_liabilities=financial_data['current_liabilities'],
+                ebit=financial_data['ebit'],
+                beta=financial_data['beta'],
+                debt_to_equity=financial_data['debt_to_equity'],
+                pe_ratio=pe_ratio
             )
             
-            screened_stocks.append(stock_metric)
-            print(f"  Added {symbol}: ROCE={roce:.2f}%, EY={earning_yield:.2f}%")
+            # Apply filters and track failure reasons
+            failure_reasons = []
+            
+            if market_cap < min_market_cap:
+                failure_reasons.append(f"Market cap too small ({market_cap/10000000:.0f} < {min_market_cap/10000000:.0f} Cr)")
+                
+            if roce <= wacc:
+                failure_reasons.append(f"ROCE ({roce:.2f}%) <= WACC ({wacc:.2f}%)")
+                
+            if earning_yield <= (bond_yield + ey_margin):
+                failure_reasons.append(f"EY ({earning_yield:.2f}%) <= Bond Yield + Margin ({bond_yield + ey_margin:.2f}%)")
+            
+            # Update stock metrics based on filter results
+            if failure_reasons:
+                stock_metric.filter_failure_reason = "; ".join(failure_reasons)
+                stock_metric.passed_screening = False
+                print(f"  ❌ {symbol}: {stock_metric.filter_failure_reason}")
+            else:
+                stock_metric.passed_screening = True
+                screened_stocks.append(stock_metric)
+                print(f"  ✅ {symbol}: ROCE={roce:.2f}%, EY={earning_yield:.2f}%")
+            
+            # Add to complete analysis list
+            all_stocks.append(stock_metric)
         
-        if not screened_stocks:
-            print("No stocks passed the screening criteria!")
-            return []
+        # Rank only the stocks that passed screening
+        if screened_stocks:
+            # Rank stocks by ROCE and EY
+            screened_stocks.sort(key=lambda x: x.roce, reverse=True)
+            for rank, stock in enumerate(screened_stocks, 1):
+                stock.roce_rank = rank
+            
+            screened_stocks.sort(key=lambda x: x.earning_yield, reverse=True)
+            for rank, stock in enumerate(screened_stocks, 1):
+                stock.ey_rank = rank
+            
+            # Calculate combined Magic Formula rank
+            for stock in screened_stocks:
+                stock.combined_rank = stock.roce_rank + stock.ey_rank
+            
+            # Sort by combined rank (lower is better)
+            screened_stocks.sort(key=lambda x: x.combined_rank)
+            
+            print(f"\n✅ {len(screened_stocks)} stocks passed screening out of {len(all_stocks)} analyzed")
+        else:
+            print(f"\n❌ No stocks passed the screening criteria out of {len(all_stocks)} analyzed")
         
-        # Rank stocks by ROCE and EY
-        screened_stocks.sort(key=lambda x: x.roce, reverse=True)
-        for rank, stock in enumerate(screened_stocks, 1):
-            stock.roce_rank = rank
-        
-        screened_stocks.sort(key=lambda x: x.earning_yield, reverse=True)
-        for rank, stock in enumerate(screened_stocks, 1):
-            stock.ey_rank = rank
-        
-        # Calculate combined Magic Formula rank
-        for stock in screened_stocks:
-            stock.combined_rank = stock.roce_rank + stock.ey_rank
-        
-        # Sort by combined rank (lower is better)
-        screened_stocks.sort(key=lambda x: x.combined_rank)
-        
-        return screened_stocks
+        return screened_stocks, all_stocks
     
     def generate_report(self, screened_stocks: List[StockMetrics], 
                        output_dir: str = "magic_formula_results",
