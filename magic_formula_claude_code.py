@@ -169,7 +169,7 @@ class MagicFormulaScreener:
             return None
     
     def screen_stocks(self, stock_symbols: List[str], 
-                     ey_margin: float = 4.0,
+                     ey_margin: float = 3.0,
                      min_market_cap: float = 1000000000) -> List[StockMetrics]:
         """
         Screen stocks using Magic Formula with additional filters
@@ -300,7 +300,7 @@ def main():
     # Sample Indian stock symbols (Nifty 50 components)
     sample_stocks = [
         'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
-        'HDFC.NS', 'KOTAKBANK.NS', 'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS',
+        'HDFC.NS', 'LIC.NS', 'COAL.NS', 'SBIN.NS', 'NMDC.NS',
         'ITC.NS', 'ASIANPAINT.NS', 'LT.NS', 'AXISBANK.NS', 'DMART.NS',
         'MARUTI.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'TITAN.NS', 'NESTLEIND.NS'
     ]
