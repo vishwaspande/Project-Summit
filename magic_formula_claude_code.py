@@ -491,57 +491,131 @@ class MagicFormulaScreener:
         
         return all_df
 
+def get_nifty_100_stocks():
+    """
+    Get NSE Nifty 100 stock symbols
+    Returns list of top 100 NSE stocks by market cap
+    """
+    nifty_100_stocks = [
+        # Nifty 50 stocks
+        'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+        'HINDUNILVR.NS', 'ITC.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ASIANPAINT.NS',
+        'MARUTI.NS', 'LT.NS', 'AXISBANK.NS', 'SUNPHARMA.NS', 'TITAN.NS',
+        'ULTRACEMCO.NS', 'NESTLEIND.NS', 'KOTAKBANK.NS', 'NTPC.NS', 'HCLTECH.NS',
+        'BAJFINANCE.NS', 'M&M.NS', 'WIPRO.NS', 'JSWSTEEL.NS', 'POWERGRID.NS',
+        'TATASTEEL.NS', 'TECHM.NS', 'INDUSINDBK.NS', 'COALINDIA.NS', 'HINDALCO.NS',
+        'ADANIPORTS.NS', 'BAJAJFINSV.NS', 'CIPLA.NS', 'DRREDDY.NS', 'GRASIM.NS',
+        'APOLLOHOSP.NS', 'EICHERMOT.NS', 'BPCL.NS', 'BRITANNIA.NS', 'TATACONSUM.NS',
+        'DIVISLAB.NS', 'SHREECEM.NS', 'HEROMOTOCO.NS', 'BAJAJ-AUTO.NS', 'ONGC.NS',
+        'ADANIENT.NS', 'TATAMOTORS.NS', 'SBILIFE.NS', 'HDFCLIFE.NS', 'UPL.NS',
+        
+        # Nifty Next 50 stocks (completing Nifty 100)
+        'GODREJCP.NS', 'SIEMENS.NS', 'PIDILITIND.NS', 'COLPAL.NS', 'DLF.NS',
+        'MARICO.NS', 'TORNTPHARM.NS', 'BOSCHLTD.NS', 'DABUR.NS', 'LUPIN.NS',
+        'BERGEPAINT.NS', 'GAIL.NS', 'BANKBARODA.NS', 'ADANIGREEN.NS', 'MOTHERSON.NS',
+        'SRF.NS', 'AMBUJACEM.NS', 'HAVELLS.NS', 'DMART.NS', 'CONCOR.NS',
+        'BIOCON.NS', 'PGHH.NS', 'MCDOWELL-N.NS', 'BAJAJHLDNG.NS', 'SAIL.NS',
+        'ALKEM.NS', 'OFSS.NS', 'NMDC.NS', 'BANDHANBNK.NS', 'MUTHOOTFIN.NS',
+        'ACC.NS', 'PAGEIND.NS', 'GODREJPROP.NS', 'CUMMINSIND.NS', 'CADILAHC.NS',
+        'RECLTD.NS', 'PFC.NS', 'AUROPHARMA.NS', 'MPHASIS.NS', 'TORNTPOWER.NS',
+        'L&TFH.NS', 'BATAINDIA.NS', 'ASHOKLEY.NS', 'INDIGO.NS', 'ABCAPITAL.NS',
+        'TATAPOWER.NS', 'LICHSGFIN.NS', 'MANAPPURAM.NS', 'CHOLAFIN.NS', 'INDUSTOWER.NS'
+    ]
+    
+    return nifty_100_stocks
+
+def get_nifty_200_stocks():
+    """
+    Extended list including Nifty 200 for broader analysis
+    """
+    nifty_200_additional = [
+        'IDFCFIRSTB.NS', 'FEDERALBNK.NS', 'PEL.NS', 'VOLTAS.NS', 'MINDTREE.NS',
+        'JUBLFOOD.NS', 'CROMPTON.NS', 'LALPATHLAB.NS', 'ESCORTS.NS', 'RBLBANK.NS',
+        'PERSISTENT.NS', 'IPCALAB.NS', 'RELAXO.NS', 'RAMCOCEM.NS', 'HONAUT.NS',
+        'TRENT.NS', 'POLYCAB.NS', 'ASTRAL.NS', 'BALKRISIND.NS', 'STARHEALTH.NS',
+        'NAUKRI.NS', 'LAURUSLABS.NS', 'DEEPAKNTR.NS', 'COFORGE.NS', 'PFIZER.NS',
+        'SYNGENE.NS', 'CANBK.NS', 'GMRINFRA.NS', 'ZYDUSLIFE.NS', 'JINDALSTEL.NS',
+        'APOLLOTYRE.NS', 'CHAMBLFERT.NS', 'BHEL.NS', 'IDEA.NS', 'PNB.NS',
+        'IOC.NS', 'ICICIPRULI.NS', 'SRTRANSFIN.NS', 'EXIDEIND.NS', 'FLUOROCHEM.NS',
+        'PIIND.NS', 'WHIRLPOOL.NS', 'JKCEMENT.NS', 'ZEEL.NS', 'UNIONBANK.NS',
+        'METROPOLIS.NS', 'CUB.NS', 'ADANIPOWER.NS', 'ABBOTINDIA.NS', 'DIXON.NS'
+    ]
+    
+    return get_nifty_100_stocks() + nifty_200_additional
+
 # Example usage
 def main():
     """
-    Main function to demonstrate the Magic Formula screener
+    Main function to demonstrate the Magic Formula screener on NSE Top 100
     """
-    print("=== Magic Formula Stock Screener - Project Summit ===\n")
+    print("=== Magic Formula Stock Screener - NSE Top 100 Analysis ===\n")
     
     # Initialize screener
     screener = MagicFormulaScreener()
     
-    # Sample Indian stock symbols (Nifty 50 components)
-    sample_stocks = [
-        'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
-        'HDFC.NS', 'LIC.NS', 'HINDUNILVR.NS', 'NMDC.NS', 'COAL.NS',
-        'ITC.NS', 'ASIANPAINT.NS', 'LT.NS', 'AXISBANK.NS', 'DMART.NS',
-        'MARUTI.NS', 'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'TITAN.NS', 'NESTLEIND.NS'
-    ]
+    # Get NSE Top 100 stocks
+    print("📊 Analysis Options:")
+    print("1. Nifty 100 stocks (100 stocks)")
+    print("2. Nifty 200 stocks (150 stocks)")
+    print("3. Custom stock list")
     
-    print(f"Sample stocks to screen: {len(sample_stocks)}")
-    print("Note: This is a demo with sample stocks. Replace with your stock universe.\n")
+    # You can change this to 2 for Nifty 200 analysis
+    analysis_choice = 1
     
-    # Screen stocks
+    if analysis_choice == 1:
+        stock_universe = get_nifty_100_stocks()
+        analysis_name = "Nifty 100"
+        file_prefix = "nifty_100_magic_formula"
+    elif analysis_choice == 2:
+        stock_universe = get_nifty_200_stocks()
+        analysis_name = "Nifty 200"
+        file_prefix = "nifty_200_magic_formula"
+    else:
+        # Custom list - you can modify this
+        stock_universe = [
+            'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+            'HINDUNILVR.NS', 'ITC.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ASIANPAINT.NS'
+        ]
+        analysis_name = "Custom Selection"
+        file_prefix = "custom_magic_formula"
+    
+    print(f"\n🎯 Selected: {analysis_name}")
+    print(f"📈 Total stocks to analyze: {len(stock_universe)}")
+    print(f"⏱️  Estimated time: {len(stock_universe) * 3} seconds")
+    print(f"💡 This will analyze ALL stocks regardless of filter results\n")
+    
+    input("Press Enter to start analysis...")
+    
+    # Screen stocks with relaxed filters for broader analysis
     screened_stocks, all_stocks = screener.screen_stocks(
-        stock_symbols=sample_stocks,
+        stock_symbols=stock_universe,
         ey_margin=4.0,  # EY > Bond Yield + 4%
-        min_market_cap=10000000000  # 1000 Cr minimum market cap
+        min_market_cap=5000000000  # 500 Cr minimum (lower for broader analysis)
     )
     
     # Generate comprehensive report with ALL data
-    print(f"\n=== COMPLETE ANALYSIS RESULTS ===")
+    print(f"\n=== {analysis_name.upper()} ANALYSIS RESULTS ===")
     print(f"Total stocks analyzed: {len(all_stocks)}")
     print(f"Stocks passed screening: {len(screened_stocks)}")
     print(f"Stocks failed screening: {len(all_stocks) - len(screened_stocks)}")
     print(f"Pass rate: {(len(screened_stocks) / len(all_stocks)) * 100:.1f}%" if all_stocks else "0%")
     print(f"Bond Yield used: {screener.indian_bond_yield}%")
     print(f"EY Threshold: {screener.indian_bond_yield + 4.0}%")
-    print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%\n")
+    print(f"Filters Applied: ROCE > WACC, EY > Bond Yield + 4%, Market Cap > 500 Cr\n")
     
     # Generate comprehensive reports including failed stocks
     df = screener.generate_report(
         screened_stocks, 
         all_stocks,
-        output_dir="magic_formula_results",
-        file_prefix="project_summit_complete_analysis"
+        output_dir="nse_analysis_results",
+        file_prefix=file_prefix
     )
     
     if screened_stocks:
-        print(f"\n=== TOP 5 MAGIC FORMULA PICKS ===")
-        for i, stock in enumerate(screened_stocks[:5], 1):
-            print(f"{i}. {stock.company_name} ({stock.symbol})")
-            print(f"   ROCE: {stock.roce:.2f}% | EY: {stock.earning_yield:.2f}% | Combined Rank: {stock.combined_rank}")
+        print(f"\n=== TOP 10 {analysis_name.upper()} MAGIC FORMULA PICKS ===")
+        for i, stock in enumerate(screened_stocks[:10], 1):
+            print(f"{i:2d}. {stock.company_name} ({stock.symbol})")
+            print(f"     ROCE: {stock.roce:5.1f}% | EY: {stock.earning_yield:5.1f}% | Rank: {stock.combined_rank}")
     
     # Show failure analysis
     failed_stocks = [stock for stock in all_stocks if not stock.passed_screening]
@@ -549,17 +623,41 @@ def main():
         print(f"\n=== FAILURE ANALYSIS ===")
         failure_reasons = {}
         for stock in failed_stocks:
-            if stock.filter_failure_reason in failure_reasons:
-                failure_reasons[stock.filter_failure_reason] += 1
+            reason = stock.filter_failure_reason
+            if "EY" in reason and "Bond Yield" in reason:
+                key = "Low Earnings Yield"
+            elif "ROCE" in reason and "WACC" in reason:
+                key = "ROCE <= WACC"
+            elif "Market cap" in reason:
+                key = "Small Market Cap"
+            elif "Data fetch failed" in reason:
+                key = "Data Unavailable"
             else:
-                failure_reasons[stock.filter_failure_reason] = 1
+                key = "Other"
+            
+            failure_reasons[key] = failure_reasons.get(key, 0) + 1
         
         print("Most common failure reasons:")
         for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
-            print(f"  • {reason}: {count} stocks")
+            percentage = (count / len(failed_stocks)) * 100
+            print(f"  • {reason}: {count} stocks ({percentage:.1f}%)")
     
-    print(f"\n📊 Complete analysis saved with ALL stock data for your analysis!")
+    # Sector analysis if enough stocks
+    if len(all_stocks) > 20:
+        print(f"\n=== SECTOR INSIGHTS ===")
+        print("Top performers by ROCE:")
+        top_roce = sorted([s for s in all_stocks if s.roce > 0], key=lambda x: x.roce, reverse=True)[:5]
+        for i, stock in enumerate(top_roce, 1):
+            print(f"  {i}. {stock.symbol}: {stock.roce:.1f}% ROCE")
+        
+        print("\nTop performers by Earnings Yield:")
+        top_ey = sorted([s for s in all_stocks if s.earning_yield > 0], key=lambda x: x.earning_yield, reverse=True)[:5]
+        for i, stock in enumerate(top_ey, 1):
+            print(f"  {i}. {stock.symbol}: {stock.earning_yield:.1f}% EY")
+    
+    print(f"\n📊 Complete {analysis_name} analysis saved with ALL stock data!")
     print(f"💡 Check Excel file for detailed breakdown of passed and failed stocks.")
+    print(f"📁 Results saved in: nse_analysis_results/ folder")
 
 if __name__ == "__main__":
     main()
