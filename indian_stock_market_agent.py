@@ -1,739 +1,563 @@
 #!/usr/bin/env python3
 """
-Indian Stock Market Dashboard - Streamlit Web App
+AI-Powered Indian Stock Market Agent
 
-Features for Indian Markets:
-- NSE/BSE stock tracking
-- Nifty 50 & Sensex monitoring  
-- Indian market hours display
+Features specifically for Indian markets:
+- NSE/BSE stock analysis
+- Indian market hours (9:15 AM - 3:30 PM IST)
 - Rupee-denominated analysis
-- Sector-wise analysis (IT, Banking, Pharma, etc.)
-- FII/DII flow impact
-- USD/INR impact analysis
-- Indian stock recommendations
+- Indian sector analysis (IT, Banking, Pharma, etc.)
+- Integration with Indian financial data
+- Support for Indian market holidays
+- Nifty 50, Sensex tracking
+- FII/DII flow analysis
+- Currency impact analysis (USD/INR)
 
 Setup:
-pip install streamlit plotly yfinance anthropic pandas numpy pytz
+pip install yfinance pandas numpy anthropic requests beautifulsoup4 pytz
 export ANTHROPIC_API_KEY="your-key-here"
 
-Run:
-streamlit run indian_dashboard.py
+Usage:
+python indian_stock_agent.py
 """
 
-import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
-import yfinance as yf
 import anthropic
+import yfinance as yf
+import pandas as pd
+import numpy as np
+import requests
 from datetime import datetime, timedelta
 import pytz
+import threading
 import time
 import json
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+import warnings
 import os
-from typing import Dict, List
+warnings.filterwarnings('ignore')
 
-# Page configuration
-st.set_page_config(
-    page_title="Indian Stock Market AI Dashboard",
-    page_icon="🇮🇳",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+@dataclass
+class IndianMarketAlert:
+    """Alert structure for Indian markets."""
+    symbol: str
+    alert_type: str
+    message: str
+    severity: str
+    timestamp: datetime
+    price_inr: float
+    sector: str
+    market_cap_cr: float  # Market cap in crores
 
-# Custom CSS for Indian theme
-st.markdown("""
-<style>
-    .main-header {
-        background: linear-gradient(90deg, #FF6B35, #F7931E, #138808);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 2.5em;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    .metric-card {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-left: 4px solid #138808;
-    }
-    .sector-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .alert-bull {
-        background-color: #d4edda;
-        border-left: 4px solid #28a745;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 5px;
-    }
-    .alert-bear {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 5px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-class IndianStockDashboard:
-    def __init__(self):
-        """Initialize the Indian stock dashboard."""
+class IndianStockMarketAgent:
+    def __init__(self, api_key: Optional[str] = None):
+        """Initialize the Indian stock market agent."""
+        self.client = anthropic.Anthropic(
+            api_key=api_key or os.getenv('ANTHROPIC_API_KEY')
+        )
         
-        # Indian timezone
-        self.ist = pytz.timezone('Asia/Kolkata')
+        # Indian market specific data
+        self.indian_timezone = pytz.timezone('Asia/Kolkata')
+        self.live_prices = {}
+        self.price_history = {}
+        self.news_cache = {}
+        self.alerts = []
+        self.analysis_cache = {}
+        self.usd_inr_rate = 83.0  # Default, will be updated
         
-        # Popular Indian stocks with their sectors
-        self.indian_stocks = {
-            'Large Cap IT': ['TCS', 'INFY', 'WIPRO', 'TECHM', 'HCLTECH'],
-            'Large Cap Banking': ['HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK'],
-            'Large Cap Consumer': ['RELIANCE', 'HINDUNILVR', 'ITC', 'NESTLEIND'],
-            'Large Cap Auto': ['MARUTI', 'TATAMOTORS', 'BAJAJ-AUTO', 'M&M'],
-            'Mid Cap IT': ['MPHASIS', 'MINDTREE', 'LTI', 'COFORGE'],
-            'Mid Cap Banking': ['FEDERALBNK', 'BANDHANBNK', 'IDFCFIRSTB'],
-            'Pharma': ['SUNPHARMA', 'DRREDDY', 'CIPLA', 'BIOCON', 'AUROPHARMA'],
+        # Indian stock symbols mapping (NSE symbols for yfinance)
+        self.popular_indian_stocks = {
+            'RELIANCE': 'RELIANCE.NS',
+            'TCS': 'TCS.NS', 
+            'HDFCBANK': 'HDFCBANK.NS',
+            'INFY': 'INFY.NS',
+            'HINDUNILVR': 'HINDUNILVR.NS',
+            'ICICIBANK': 'ICICIBANK.NS',
+            'SBIN': 'SBIN.NS',
+            'BAJFINANCE': 'BAJFINANCE.NS',
+            'BHARTIARTL': 'BHARTIARTL.NS',
+            'ITC': 'ITC.NS',
+            'ASIANPAINT': 'ASIANPAINT.NS',
+            'MARUTI': 'MARUTI.NS',
+            'KOTAKBANK': 'KOTAKBANK.NS',
+            'LT': 'LT.NS',
+            'WIPRO': 'WIPRO.NS',
+            'ADANIPORTS': 'ADANIPORTS.NS',
+            'ULTRACEMCO': 'ULTRACEMCO.NS',
+            'TITAN': 'TITAN.NS',
+            'POWERGRID': 'POWERGRID.NS',
+            'NESTLEIND': 'NESTLEIND.NS',
+            'TECHM': 'TECHM.NS',
+            'HCLTECH': 'HCLTECH.NS',
+            'AXISBANK': 'AXISBANK.NS',
+            'TATAMOTORS': 'TATAMOTORS.NS',
+            'SUNPHARMA': 'SUNPHARMA.NS'
+        }
+        
+        # Indian sectors mapping
+        self.indian_sectors = {
+            'IT': ['TCS', 'INFY', 'WIPRO', 'TECHM', 'HCLTECH'],
+            'Banking': ['HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK'],
+            'Consumer': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'DABUR'],
+            'Auto': ['MARUTI', 'TATAMOTORS', 'BAJAJ-AUTO', 'M&M'],
+            'Pharma': ['SUNPHARMA', 'DRREDDY', 'CIPLA', 'BIOCON'],
+            'Oil & Gas': ['RELIANCE', 'ONGC', 'IOC', 'BPCL'],
+            'Metals': ['TATASTEEL', 'HINDALCO', 'JSWSTEEL', 'SAIL'],
             'Infrastructure': ['LT', 'ADANIPORTS', 'POWERGRID', 'NTPC']
         }
         
-        # Flatten the stock list
-        self.all_stocks = []
-        for stocks in self.indian_stocks.values():
-            self.all_stocks.extend(stocks)
+        # Market timing
+        self.market_open_time = "09:15"
+        self.market_close_time = "15:30"
         
-        # Initialize session state
-        if 'indian_portfolio' not in st.session_state:
-            st.session_state.indian_portfolio = {}
-        if 'monitoring_stocks' not in st.session_state:
-            st.session_state.monitoring_stocks = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY']
-        if 'live_data' not in st.session_state:
-            st.session_state.live_data = {}
-        if 'indices_data' not in st.session_state:
-            st.session_state.indices_data = {}
-        
-        self.claude_client = None
-        self.setup_claude()
+        print("🇮🇳 Indian Stock Market Agent initialized!")
+        print(f"⏰ Market Hours: {self.market_open_time} - {self.market_close_time} IST")
     
-    def setup_claude(self):
-        """Setup Claude API client."""
-        api_key = st.sidebar.text_input(
-            "🔑 Claude API Key:", 
-            type="password",
-            help="Get your API key from console.anthropic.com"
-        )
+    def is_market_open(self) -> bool:
+        """Check if Indian stock market is currently open."""
+        now = datetime.now(self.indian_timezone)
+        current_time = now.strftime("%H:%M")
+        current_day = now.weekday()  # 0=Monday, 6=Sunday
         
-        if api_key:
-            try:
-                self.claude_client = anthropic.Anthropic(api_key=api_key)
-                st.sidebar.success("✅ Claude AI connected!")
-                return True
-            except Exception as e:
-                st.sidebar.error(f"❌ Claude API Error: {str(e)}")
-        else:
-            st.sidebar.warning("⚠️ Enter API key for AI analysis")
+        # Market closed on weekends
+        if current_day >= 5:  # Saturday or Sunday
+            return False
+        
+        # Check if current time is within market hours
+        if self.market_open_time <= current_time <= self.market_close_time:
+            return True
         
         return False
     
-    def is_indian_market_open(self) -> bool:
-        """Check if Indian stock market is open."""
-        now = datetime.now(self.ist)
-        current_time = now.time()
-        weekday = now.weekday()
-        
-        market_open = datetime.strptime("09:15", "%H:%M").time()
-        market_close = datetime.strptime("15:30", "%H:%M").time()
-        
-        # Market closed on weekends
-        if weekday >= 5:
-            return False
-        
-        return market_open <= current_time <= market_close
-    
     def get_indian_stock_data(self, symbols: List[str]) -> Dict:
-        """Fetch Indian stock data."""
+        """Fetch Indian stock data with NSE symbols."""
         data = {}
         
         for symbol in symbols:
             try:
-                # Add .NS for NSE stocks
-                yf_symbol = f"{symbol}.NS"
+                # Convert to NSE symbol if needed
+                yf_symbol = self.popular_indian_stocks.get(symbol, f"{symbol}.NS")
+                
                 ticker = yf.Ticker(yf_symbol)
-                
-                # Get intraday data if market is open, otherwise daily data
-                if self.is_indian_market_open():
-                    hist = ticker.history(period="1d", interval="5m")
-                else:
-                    hist = ticker.history(period="5d", interval="1d")
-                
+                hist = ticker.history(period="1d", interval="1m")
                 info = ticker.info
                 
                 if not hist.empty:
                     current_price = hist['Close'].iloc[-1]
-                    prev_close = info.get('previousClose', hist['Open'].iloc[0])
+                    prev_close = info.get('previousClose', current_price)
                     day_change = current_price - prev_close
                     day_change_pct = (day_change / prev_close * 100) if prev_close > 0 else 0
+                    
+                    # Market cap in crores (1 crore = 10 million)
+                    market_cap_inr = info.get('marketCap', 0) * self.usd_inr_rate if info.get('marketCap') else 0
+                    market_cap_cr = market_cap_inr / 10000000  # Convert to crores
                     
                     data[symbol] = {
                         'price': current_price,
                         'prev_close': prev_close,
                         'day_change': day_change,
                         'day_change_pct': day_change_pct,
-                        'volume': hist['Volume'].sum() if len(hist) > 1 else hist['Volume'].iloc[-1],
+                        'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
                         'high': hist['High'].max(),
                         'low': hist['Low'].min(),
-                        'market_cap': info.get('marketCap', 0),
+                        'market_cap_cr': market_cap_cr,
                         'pe_ratio': info.get('trailingPE'),
-                        'sector': self.get_stock_sector(symbol),
-                        'hist_data': hist,
-                        'timestamp': datetime.now(self.ist)
+                        'sector': self.get_indian_sector(symbol),
+                        'yf_symbol': yf_symbol,
+                        'timestamp': datetime.now(self.indian_timezone)
                     }
                     
             except Exception as e:
-                st.error(f"Error fetching {symbol}: {e}")
-        
+                print(f"Error fetching data for {symbol}: {e}")
+                data[symbol] = {
+                    'error': str(e),
+                    'symbol': symbol,
+                    'timestamp': datetime.now(self.indian_timezone)
+                }
+                
         return data
     
-    def get_stock_sector(self, symbol: str) -> str:
-        """Get sector for a stock symbol."""
-        for sector, stocks in self.indian_stocks.items():
+    def get_indian_sector(self, symbol: str) -> str:
+        """Get Indian sector for a given stock symbol."""
+        for sector, stocks in self.indian_sectors.items():
             if symbol in stocks:
                 return sector
         return 'Other'
     
-    def get_indices_data(self) -> Dict:
-        """Fetch Nifty and Sensex data."""
-        indices = {}
+    def get_nifty_sensex_data(self) -> Dict:
+        """Fetch Nifty 50 and Sensex data."""
+        indices_data = {}
         
         try:
             # Nifty 50
             nifty = yf.Ticker("^NSEI")
-            nifty_hist = nifty.history(period="1d", interval="5m" if self.is_indian_market_open() else "1d")
+            nifty_hist = nifty.history(period="1d", interval="1m")
             
             if not nifty_hist.empty:
-                nifty_price = nifty_hist['Close'].iloc[-1]
-                nifty_open = nifty_hist['Open'].iloc[0]
-                nifty_change = nifty_price - nifty_open
-                nifty_change_pct = (nifty_change / nifty_open) * 100
-                
-                indices['NIFTY'] = {
-                    'price': nifty_price,
-                    'change': nifty_change,
-                    'change_pct': nifty_change_pct,
+                indices_data['NIFTY'] = {
+                    'price': nifty_hist['Close'].iloc[-1],
+                    'change': nifty_hist['Close'].iloc[-1] - nifty_hist['Open'].iloc[0],
+                    'change_pct': ((nifty_hist['Close'].iloc[-1] / nifty_hist['Open'].iloc[0]) - 1) * 100,
                     'high': nifty_hist['High'].max(),
                     'low': nifty_hist['Low'].min()
                 }
             
             # Sensex
             sensex = yf.Ticker("^BSESN")
-            sensex_hist = sensex.history(period="1d", interval="5m" if self.is_indian_market_open() else "1d")
+            sensex_hist = sensex.history(period="1d", interval="1m")
             
             if not sensex_hist.empty:
-                sensex_price = sensex_hist['Close'].iloc[-1]
-                sensex_open = sensex_hist['Open'].iloc[0]
-                sensex_change = sensex_price - sensex_open
-                sensex_change_pct = (sensex_change / sensex_open) * 100
-                
-                indices['SENSEX'] = {
-                    'price': sensex_price,
-                    'change': sensex_change,
-                    'change_pct': sensex_change_pct,
+                indices_data['SENSEX'] = {
+                    'price': sensex_hist['Close'].iloc[-1],
+                    'change': sensex_hist['Close'].iloc[-1] - sensex_hist['Open'].iloc[0],
+                    'change_pct': ((sensex_hist['Close'].iloc[-1] / sensex_hist['Open'].iloc[0]) - 1) * 100,
                     'high': sensex_hist['High'].max(),
                     'low': sensex_hist['Low'].min()
                 }
                 
         except Exception as e:
-            st.error(f"Error fetching indices: {e}")
-        
-        return indices
+            print(f"Error fetching indices data: {e}")
+            
+        return indices_data
     
     def get_usd_inr_rate(self) -> float:
-        """Get USD/INR exchange rate."""
+        """Fetch current USD/INR exchange rate."""
         try:
             usd_inr = yf.Ticker("USDINR=X")
             hist = usd_inr.history(period="1d")
             if not hist.empty:
-                return hist['Close'].iloc[-1]
+                self.usd_inr_rate = hist['Close'].iloc[-1]
+                return self.usd_inr_rate
         except:
             pass
-        return 83.0  # Default fallback
+        return self.usd_inr_rate
     
-    def call_claude_indian(self, prompt: str, max_tokens: int = 2500) -> str:
+    def _call_claude_indian(self, prompt: str, max_tokens: int = 3000) -> str:
         """Call Claude with Indian market context."""
-        if not self.claude_client:
-            return "❌ Claude API not configured. Please add your API key."
-        
-        current_time = datetime.now(self.ist).strftime('%Y-%m-%d %H:%M IST')
-        market_status = 'OPEN' if self.is_indian_market_open() else 'CLOSED'
-        usd_inr = self.get_usd_inr_rate()
-        
         indian_context = f"""
-        INDIAN MARKET CONTEXT:
-        - Current time: {current_time}
-        - Market status: {market_status}
-        - Currency: All prices in Indian Rupees (₹)
-        - USD/INR rate: ₹{usd_inr:.2f}
+        IMPORTANT CONTEXT:
+        - All prices are in Indian Rupees (₹)
         - Market hours: 9:15 AM - 3:30 PM IST
+        - Current USD/INR rate: ₹{self.usd_inr_rate:.2f}
+        - Market status: {'OPEN' if self.is_market_open() else 'CLOSED'}
+        - Analysis time: {datetime.now(self.indian_timezone).strftime('%Y-%m-%d %H:%M IST')}
         
         {prompt}
         
-        Provide analysis specifically relevant to Indian investors, considering:
-        - Indian market dynamics and regulations
-        - Sectoral trends in India
-        - Impact of global factors on Indian markets
-        - Currency effects on investments
-        - Retail investor perspective
+        Provide analysis relevant to Indian investors and market conditions.
         """
         
         try:
-            with st.spinner("🤖 AI analyzing..."):
-                message = self.claude_client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=max_tokens,
-                    temperature=0.3,
-                    messages=[{"role": "user", "content": indian_context}]
-                )
-                return message.content[0].text
+            message = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=max_tokens,
+                temperature=0.3,
+                messages=[{"role": "user", "content": indian_context}]
+            )
+            return message.content[0].text
         except Exception as e:
-            return f"❌ AI Analysis error: {str(e)}"
+            return f"❌ Analysis error: {str(e)}"
     
-    def create_indian_stock_chart(self, symbol: str, period: str = "1d") -> go.Figure:
-        """Create chart for Indian stock."""
-        try:
-            ticker = yf.Ticker(f"{symbol}.NS")
-            
-            if period == "1d":
-                data = ticker.history(period="1d", interval="5m")
-                title_suffix = "Today"
-            elif period == "1w":
-                data = ticker.history(period="5d", interval="30m") 
-                title_suffix = "5 Days"
-            elif period == "1m":
-                data = ticker.history(period="1mo", interval="1d")
-                title_suffix = "1 Month"
-            else:
-                data = ticker.history(period=period, interval="1d")
-                title_suffix = period.upper()
-            
-            if data.empty:
-                st.error(f"No data available for {symbol}")
-                return None
-            
-            fig = go.Figure()
-            
-            # Candlestick chart
-            fig.add_trace(go.Candlestick(
-                x=data.index,
-                open=data['Open'],
-                high=data['High'],
-                low=data['Low'],
-                close=data['Close'],
-                name=symbol,
-                increasing_line_color='#00C851',
-                decreasing_line_color='#FF4444'
-            ))
-            
-            fig.update_layout(
-                title=f"{symbol} - {title_suffix} (₹)",
-                yaxis_title="Price (₹)",
-                xaxis_title="Time",
-                template="plotly_white",
-                height=400,
-                showlegend=False
-            )
-            
-            fig.update_xaxes(rangeslider_visible=False)
-            
-            return fig
-            
-        except Exception as e:
-            st.error(f"Error creating chart for {symbol}: {e}")
-            return None
+    def analyze_indian_stock(self, symbol: str) -> str:
+        """Comprehensive analysis of Indian stock."""
+        print(f"🔍 Analyzing {symbol}...")
+        
+        stock_data = self.get_indian_stock_data([symbol])
+        
+        if symbol not in stock_data or 'error' in stock_data[symbol]:
+            return f"❌ Could not fetch data for {symbol}"
+        
+        data = stock_data[symbol]
+        
+        prompt = f"""
+        Analyze this Indian stock for investment decisions:
+        
+        STOCK: {symbol} ({data['sector']} sector)
+        Current Price: ₹{data['price']:.2f}
+        Day Change: ₹{data['day_change']:.2f} ({data['day_change_pct']:+.1f}%)
+        Market Cap: ₹{data['market_cap_cr']:.0f} crores
+        P/E Ratio: {data.get('pe_ratio', 'N/A')}
+        Volume: {data['volume']:,} shares
+        Day Range: ₹{data['low']:.2f} - ₹{data['high']:.2f}
+        
+        Provide analysis specifically for Indian investors:
+        
+        1. **STOCK ASSESSMENT**
+           - Valuation at current levels
+           - Comparison with sector peers
+           - Growth prospects in Indian market
+        
+        2. **SECTOR ANALYSIS**
+           - {data['sector']} sector outlook in India
+           - Regulatory environment impact
+           - Competition landscape
+        
+        3. **INVESTMENT RECOMMENDATION**
+           - BUY/HOLD/SELL with rationale
+           - Target price in next 3-6 months
+           - Suitable for retail/HNI investors?
+        
+        4. **RISK FACTORS**
+           - Company-specific risks
+           - Sector/regulatory risks
+           - Market risks (FII flows, currency, etc.)
+        
+        5. **KEY CATALYSTS**
+           - Upcoming events (results, policy changes)
+           - Technical levels to watch
+           - News/events to monitor
+        
+        Focus on actionable insights for Indian retail investors.
+        """
+        
+        return self._call_claude_indian(prompt)
     
-    def render_main_dashboard(self):
-        """Render the main dashboard."""
+    def analyze_portfolio_indian(self, portfolio: Dict[str, Dict]) -> str:
+        """Analyze Indian stock portfolio."""
+        print("📊 Analyzing Indian portfolio...")
         
-        # Header with Indian flag colors
-        st.markdown('<h1 class="main-header">🇮🇳 Indian Stock Market AI Dashboard</h1>', 
-                   unsafe_allow_html=True)
+        # Get current data for all positions
+        symbols = list(portfolio.keys())
+        current_data = self.get_indian_stock_data(symbols)
+        indices_data = self.get_nifty_sensex_data()
         
-        # Current time and market status
-        current_time = datetime.now(self.ist).strftime('%Y-%m-%d %H:%M:%S IST')
-        market_status = "🟢 OPEN" if self.is_indian_market_open() else "🔴 CLOSED"
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.info(f"📅 {current_time}")
-        with col2:
-            st.info(f"📈 Market: {market_status}")
-        with col3:
-            usd_inr = self.get_usd_inr_rate()
-            st.info(f"💱 USD/INR: ₹{usd_inr:.2f}")
-        
-        # Sidebar controls
-        st.sidebar.header("📊 Dashboard Controls")
-        
-        # Stock selection
-        selected_stocks = st.sidebar.multiselect(
-            "Select Indian stocks to monitor:",
-            options=self.all_stocks,
-            default=st.session_state.monitoring_stocks,
-            help="Choose from NSE listed stocks"
-        )
-        
-        if selected_stocks:
-            st.session_state.monitoring_stocks = selected_stocks
-        
-        # Auto-refresh
-        auto_refresh = st.sidebar.checkbox("🔄 Auto-refresh data", value=False)
-        refresh_interval = st.sidebar.slider("Refresh interval (seconds)", 30, 300, 60)
-        
-        # Manual refresh
-        if st.sidebar.button("🔄 Refresh Data Now", type="primary"):
-            self.refresh_data()
-        
-        # Main content tabs
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-            "📊 Market Overview", 
-            "📈 Stock Charts", 
-            "💼 Portfolio", 
-            "🤖 AI Analysis",
-            "📰 Market Outlook",
-            "⚡ Alerts"
-        ])
-        
-        with tab1:
-            self.render_market_overview_tab()
-        
-        with tab2:
-            self.render_charts_tab()
-        
-        with tab3:
-            self.render_portfolio_tab()
-        
-        with tab4:
-            self.render_ai_analysis_tab()
-        
-        with tab5:
-            self.render_market_outlook_tab()
-        
-        with tab6:
-            self.render_alerts_tab()
-        
-        # Auto-refresh mechanism
-        if auto_refresh:
-            time.sleep(refresh_interval)
-            st.experimental_rerun()
-    
-    def refresh_data(self):
-        """Refresh all market data."""
-        with st.spinner("📊 Refreshing Indian market data..."):
-            # Get stocks data
-            st.session_state.live_data = self.get_indian_stock_data(st.session_state.monitoring_stocks)
-            
-            # Get indices data
-            st.session_state.indices_data = self.get_indices_data()
-            
-            st.success("✅ Data refreshed!")
-    
-    def render_market_overview_tab(self):
-        """Render market overview tab."""
-        st.subheader("📊 Indian Market Overview")
-        
-        # Get fresh data if not available
-        if not st.session_state.live_data:
-            self.refresh_data()
-        
-        # Indices overview
-        if st.session_state.indices_data:
-            st.subheader("📈 Market Indices")
-            
-            col1, col2 = st.columns(2)
-            
-            if 'NIFTY' in st.session_state.indices_data:
-                nifty = st.session_state.indices_data['NIFTY']
-                with col1:
-                    delta_color = "normal" if nifty['change_pct'] >= 0 else "inverse"
-                    st.metric(
-                        "Nifty 50",
-                        f"{nifty['price']:.1f}",
-                        f"{nifty['change']:+.1f} ({nifty['change_pct']:+.1f}%)",
-                        delta_color=delta_color
-                    )
-            
-            if 'SENSEX' in st.session_state.indices_data:
-                sensex = st.session_state.indices_data['SENSEX']
-                with col2:
-                    delta_color = "normal" if sensex['change_pct'] >= 0 else "inverse"
-                    st.metric(
-                        "Sensex",
-                        f"{sensex['price']:.1f}",
-                        f"{sensex['change']:+.1f} ({sensex['change_pct']:+.1f}%)",
-                        delta_color=delta_color
-                    )
-        
-        # Stock overview
-        if st.session_state.live_data:
-            st.subheader("📋 Monitored Stocks")
-            
-            # Create columns for stock metrics
-            cols = st.columns(min(len(st.session_state.live_data), 4))
-            
-            for i, (symbol, data) in enumerate(st.session_state.live_data.items()):
-                col_idx = i % 4
-                with cols[col_idx]:
-                    delta_color = "normal" if data['day_change_pct'] >= 0 else "inverse"
-                    st.metric(
-                        f"{symbol}",
-                        f"₹{data['price']:.1f}",
-                        f"₹{data['day_change']:+.1f} ({data['day_change_pct']:+.1f}%)",
-                        delta_color=delta_color
-                    )
-            
-            # Sector performance
-            self.render_sector_performance()
-    
-    def render_sector_performance(self):
-        """Render sector performance analysis."""
-        st.subheader("🏭 Sector Performance")
-        
-        sector_data = {}
-        
-        # Calculate sector averages
-        for symbol, data in st.session_state.live_data.items():
-            sector = data['sector']
-            if sector not in sector_data:
-                sector_data[sector] = []
-            sector_data[sector].append(data['day_change_pct'])
-        
-        # Calculate sector averages
-        sector_avg = {}
-        for sector, changes in sector_data.items():
-            sector_avg[sector] = sum(changes) / len(changes)
-        
-        # Display sector cards
-        cols = st.columns(3)
-        for i, (sector, avg_change) in enumerate(sector_avg.items()):
-            with cols[i % 3]:
-                color = "🟢" if avg_change >= 0 else "🔴"
-                st.markdown(f"""
-                <div class="sector-card">
-                    <h4>{color} {sector}</h4>
-                    <h2>{avg_change:+.1f}%</h2>
-                    <p>Average Change</p>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    def render_charts_tab(self):
-        """Render charts tab."""
-        st.subheader("📈 Stock Charts")
-        
-        if not st.session_state.monitoring_stocks:
-            st.info("Please select stocks to monitor from the sidebar")
-            return
-        
-        # Chart controls
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            selected_stock = st.selectbox(
-                "Select stock for detailed chart:",
-                st.session_state.monitoring_stocks
-            )
-        
-        with col2:
-            time_period = st.selectbox(
-                "Time period:",
-                ["1d", "1w", "1m", "3m", "6m", "1y"]
-            )
-        
-        if selected_stock:
-            # Create and display chart
-            fig = self.create_indian_stock_chart(selected_stock, time_period)
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
-            
-            # Stock details
-            if selected_stock in st.session_state.live_data:
-                data = st.session_state.live_data[selected_stock]
-                
-                st.subheader(f"📊 {selected_stock} Details")
-                
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    st.metric("Current Price", f"₹{data['price']:.2f}")
-                
-                with col2:
-                    st.metric("Day High", f"₹{data['high']:.2f}")
-                
-                with col3:
-                    st.metric("Day Low", f"₹{data['low']:.2f}")
-                
-                with col4:
-                    market_cap_cr = data['market_cap'] / 10000000 if data['market_cap'] else 0
-                    st.metric("Market Cap", f"₹{market_cap_cr:.0f} Cr")
-    
-    def render_portfolio_tab(self):
-        """Render portfolio management tab."""
-        st.subheader("💼 Portfolio Management")
-        
-        # Add/Edit positions
-        st.subheader("➕ Add Stock Position")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            portfolio_symbol = st.selectbox("Stock:", self.all_stocks, key="portfolio_stock")
-        
-        with col2:
-            quantity = st.number_input("Quantity:", min_value=1, value=100, step=1)
-        
-        with col3:
-            avg_price = st.number_input("Average Price (₹):", min_value=0.01, value=100.0, step=0.01)
-        
-        with col4:
-            if st.button("➕ Add Position", type="primary"):
-                st.session_state.indian_portfolio[portfolio_symbol] = {
-                    'qty': quantity,
-                    'avg_price': avg_price,
-                    'timestamp': datetime.now(self.ist)
-                }
-                st.success(f"Added {quantity} shares of {portfolio_symbol}")
-        
-        # Display portfolio
-        if st.session_state.indian_portfolio:
-            st.subheader("📊 Current Portfolio")
-            
-            # Get current prices for portfolio stocks
-            portfolio_symbols = list(st.session_state.indian_portfolio.keys())
-            current_prices = self.get_indian_stock_data(portfolio_symbols)
-            
-            # Calculate portfolio metrics
-            portfolio_data = []
-            total_invested = 0
-            total_current = 0
-            
-            for symbol, position in st.session_state.indian_portfolio.items():
-                current_price = current_prices.get(symbol, {}).get('price', position['avg_price'])
-                invested = position['qty'] * position['avg_price']
-                current_value = position['qty'] * current_price
-                pnl = current_value - invested
-                pnl_pct = (pnl / invested * 100) if invested > 0 else 0
-                
-                total_invested += invested
-                total_current += current_value
-                
-                portfolio_data.append({
-                    'Stock': symbol,
-                    'Qty': position['qty'],
-                    'Avg Price': f"₹{position['avg_price']:.2f}",
-                    'Current Price': f"₹{current_price:.2f}",
-                    'Invested': f"₹{invested:,.0f}",
-                    'Current Value': f"₹{current_value:,.0f}",
-                    'P&L': f"₹{pnl:,.0f}",
-                    'P&L %': f"{pnl_pct:+.1f}%"
-                })
-            
-            # Portfolio summary
-            total_pnl = total_current - total_invested
-            total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("Total Invested", f"₹{total_invested:,.0f}")
-            
-            with col2:
-                st.metric("Current Value", f"₹{total_current:,.0f}")
-            
-            with col3:
-                delta_color = "normal" if total_pnl >= 0 else "inverse"
-                st.metric("Total P&L", f"₹{total_pnl:,.0f}", f"{total_pnl_pct:+.1f}%", delta_color=delta_color)
-            
-            # Portfolio table
-            df = pd.DataFrame(portfolio_data)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-            
-            # AI Portfolio Analysis
-            if st.button("🤖 Get AI Portfolio Analysis", type="secondary") and self.claude_client:
-                portfolio_analysis = self.analyze_indian_portfolio()
-                st.markdown("### 🤖 AI Portfolio Analysis")
-                st.markdown(portfolio_analysis)
-    
-    def analyze_indian_portfolio(self) -> str:
-        """Get AI analysis of Indian portfolio."""
-        if not st.session_state.indian_portfolio:
-            return "❌ No portfolio positions found"
-        
-        # Prepare portfolio summary
+        # Calculate portfolio metrics
         portfolio_summary = []
-        for symbol, position in st.session_state.indian_portfolio.items():
-            current_data = st.session_state.live_data.get(symbol, {})
-            current_price = current_data.get('price', position['avg_price'])
-            
-            portfolio_summary.append(f"""
-            {symbol}: {position['qty']} shares @ ₹{position['avg_price']:.2f}
-            Current: ₹{current_price:.2f}
-            Sector: {current_data.get('sector', 'Unknown')}
-            """)
+        sector_allocation = {}
+        total_invested = 0
+        total_current_value = 0
+        
+        for symbol, position in portfolio.items():
+            if symbol in current_data and 'error' not in current_data[symbol]:
+                current_price = current_data[symbol]['price']
+                invested_amount = position['qty'] * position['avg_price']
+                current_value = position['qty'] * current_price
+                pnl = current_value - invested_amount
+                pnl_pct = (pnl / invested_amount) * 100 if invested_amount > 0 else 0
+                
+                total_invested += invested_amount
+                total_current_value += current_value
+                
+                sector = current_data[symbol]['sector']
+                sector_allocation[sector] = sector_allocation.get(sector, 0) + current_value
+                
+                portfolio_summary.append(f"""
+                {symbol} ({sector}):
+                - Qty: {position['qty']} shares @ ₹{position['avg_price']:.2f}
+                - Current: ₹{current_price:.2f}
+                - Invested: ₹{invested_amount:,.0f} | Current: ₹{current_value:,.0f}
+                - P&L: ₹{pnl:,.0f} ({pnl_pct:+.1f}%)
+                """)
+        
+        # Calculate sector allocation percentages
+        sector_pct = {sector: (value/total_current_value)*100 
+                     for sector, value in sector_allocation.items()} if total_current_value > 0 else {}
+        
+        portfolio_pnl = total_current_value - total_invested
+        portfolio_pnl_pct = (portfolio_pnl / total_invested) * 100 if total_invested > 0 else 0
         
         prompt = f"""
         Analyze this Indian stock portfolio:
         
-        PORTFOLIO POSITIONS:
+        PORTFOLIO SUMMARY:
+        Total Invested: ₹{total_invested:,.0f}
+        Current Value: ₹{total_current_value:,.0f}
+        Total P&L: ₹{portfolio_pnl:,.0f} ({portfolio_pnl_pct:+.1f}%)
+        
+        POSITIONS:
         {chr(10).join(portfolio_summary)}
         
+        SECTOR ALLOCATION:
+        {chr(10).join([f"- {sector}: {pct:.1f}%" for sector, pct in sector_pct.items()])}
+        
         MARKET CONTEXT:
-        - Nifty 50: {st.session_state.indices_data.get('NIFTY', {}).get('change_pct', 'N/A')}%
-        - Sensex: {st.session_state.indices_data.get('SENSEX', {}).get('change_pct', 'N/A')}%
+        Nifty 50: {indices_data.get('NIFTY', {}).get('price', 'N/A')} ({indices_data.get('NIFTY', {}).get('change_pct', 0):+.1f}%)
+        Sensex: {indices_data.get('SENSEX', {}).get('price', 'N/A')} ({indices_data.get('SENSEX', {}).get('change_pct', 0):+.1f}%)
+        USD/INR: ₹{self.usd_inr_rate:.2f}
         
-        Provide comprehensive analysis including:
-        1. **Portfolio Health** - Overall risk and diversification
-        2. **Sector Analysis** - Sector allocation and balance
-        3. **Stock Performance** - Individual stock outlook
-        4. **Recommendations** - Specific buy/sell/hold suggestions
-        5. **Risk Management** - Key risks and mitigation
+        Provide comprehensive portfolio analysis for Indian investor:
         
-        Focus on actionable advice for Indian retail investors.
+        1. **PORTFOLIO HEALTH**
+           - Overall performance vs Nifty/Sensex
+           - Risk-return profile assessment
+           - Diversification analysis
+        
+        2. **SECTOR ANALYSIS**
+           - Over/under-weight sectors
+           - Sector rotation opportunities
+           - Regulatory/policy impact
+        
+        3. **REBALANCING SUGGESTIONS**
+           - Specific buy/sell recommendations
+           - Position sizing adjustments
+           - New stocks to consider
+        
+        4. **RISK MANAGEMENT**
+           - Concentration risks
+           - Currency exposure (if any)
+           - Market correlation risks
+        
+        5. **ACTION ITEMS**
+           - Immediate actions needed
+           - Stocks to monitor closely
+           - Market levels to watch
+        
+        Tailor advice for Indian market conditions and regulations.
         """
         
-        return self.call_claude_indian(prompt)
+        return self._call_claude_indian(prompt)
     
-    def render_ai_analysis_tab(self):
-        """Render AI analysis tab."""
-        st.subheader("🤖 AI-Powered Stock Analysis")
+    def market_outlook_indian(self) -> str:
+        """Generate Indian market outlook."""
+        print("🇮🇳 Generating Indian market outlook...")
         
-        if not self.claude_client:
-            st.warning("⚠️ Please configure Claude API key in sidebar for AI analysis")
-            return
+        # Get major indices data
+        indices_data = self.get_nifty_sensex_data()
         
-        # Stock selection for analysis
-        analysis_stock = st.selectbox("Select stock for AI analysis:", st.session_state.monitoring_stocks)
+        # Get key stocks data
+        key_stocks = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ITC']
+        stocks_data = self.get_indian_stock_data(key_stocks)
         
-        analysis_type = st.selectbox("Analysis Type:", [
-            "Comprehensive Stock Analysis",
-            "Technical Analysis",
-            "Fundamental Analysis", 
-            "Sector Comparison",
-            "Risk Assessment"
-        ])
+        # Get USD/INR rate
+        usd_inr = self.get_usd_inr_rate()
         
-        if st.button("🚀 Generate AI Analysis", type="primary") and analysis_stock:
-            
-            if analysis_stock in st.session_state.live_data:
-                stock_data = st.session_state.live_data[analysis_stock]
-                
-                if analysis_type == "Comprehensive Stock Analysis":
-                    prompt = f"""
-                    Provide comprehensive analysis for {analysis_stock}:
-                    
-                    Current Price: ₹{stock_data['price']:.2f}
-                    Day Change: {stock_data['day_change_pct']:+.1f}%
-                    Sector: {stock
+        # Prepare market summary
+        indices_summary = []
+        if 'NIFTY' in indices_data:
+            nifty = indices_data['NIFTY']
+            indices_summary.append(f"Nifty 50: {nifty['price']:.0f} ({nifty['change_pct']:+.1f}%)")
+        
+        if 'SENSEX' in indices_data:
+            sensex = indices_data['SENSEX']
+            indices_summary.append(f"Sensex: {sensex['price']:.0f} ({sensex['change_pct']:+.1f}%)")
+        
+        stocks_summary = []
+        for symbol, data in stocks_data.items():
+            if 'error' not in data:
+                stocks_summary.append(f"{symbol}: ₹{data['price']:.1f} ({data['day_change_pct']:+.1f}%)")
+        
+        prompt = f"""
+        Provide comprehensive Indian stock market outlook:
+        
+        MARKET SNAPSHOT ({datetime.now(self.indian_timezone).strftime('%Y-%m-%d %H:%M IST')}):
+        {chr(10).join(indices_summary)}
+        
+        KEY STOCKS:
+        {chr(10).join(stocks_summary)}
+        
+        CURRENCY:
+        USD/INR: ₹{usd_inr:.2f}
+        
+        MARKET STATUS: {'OPEN' if self.is_market_open() else 'CLOSED'}
+        
+        Analyze and provide outlook covering:
+        
+        1. **MARKET SENTIMENT**
+           - Overall market direction and momentum
+           - Risk-on vs risk-off sentiment
+           - Retail vs institutional activity
+        
+        2. **SECTOR ROTATION**
+           - Which sectors are outperforming/underperforming
+           - Sectoral themes and trends
+           - Policy impact on sectors
+        
+        3. **KEY DRIVERS**
+           - FII/DII flows impact
+           - Global factors affecting Indian markets
+           - Currency movement implications
+        
+        4. **TECHNICAL OUTLOOK**
+           - Nifty/Sensex support and resistance levels
+           - Momentum indicators and trends
+           - Key levels to watch
+        
+        5. **INVESTMENT STRATEGY**
+           - Market positioning recommendations
+           - Sectors/stocks to focus on
+           - Risk management approach
+        
+        6. **UPCOMING CATALYSTS**
+           - Key events/announcements to watch
+           - Earnings season impact
+           - Policy/regulatory changes
+        
+        Focus on actionable insights for Indian retail and HNI investors.
+        """
+        
+        return self._call_claude_indian(prompt)
+
+def main():
+    """Demo of the Indian Stock Market Agent."""
+    
+    print("🇮🇳 Indian Stock Market AI Agent Demo")
+    print("=" * 60)
+    
+    # Check if API key is available
+    api_key = os.getenv('ANTHROPIC_API_KEY')
+    if not api_key:
+        print("❌ API key not found!")
+        print("Please set: export ANTHROPIC_API_KEY='your-key-here'")
+        return
+    
+    # Initialize agent
+    try:
+        agent = IndianStockMarketAgent(api_key)
+    except Exception as e:
+        print(f"❌ Error initializing agent: {e}")
+        return
+    
+    # Example Indian portfolio
+    sample_portfolio = {
+        'RELIANCE': {'qty': 100, 'avg_price': 2400.0},
+        'TCS': {'qty': 50, 'avg_price': 3200.0},
+        'HDFCBANK': {'qty': 75, 'avg_price': 1500.0},
+        'INFY': {'qty': 200, 'avg_price': 1400.0},
+        'ITC': {'qty': 500, 'avg_price': 350.0}
+    }
+    
+    print(f"\n📊 Sample Portfolio: {', '.join(sample_portfolio.keys())}")
+    print(f"⏰ Market Status: {'OPEN' if agent.is_market_open() else 'CLOSED'}")
+    print(f"💱 USD/INR Rate: ₹{agent.get_usd_inr_rate():.2f}")
+    
+    try:
+        # Example 1: Individual stock analysis
+        print("\n" + "="*50)
+        print("1. INDIAN STOCK ANALYSIS")
+        print("="*50)
+        
+        stock_analysis = agent.analyze_indian_stock('RELIANCE')
+        print(stock_analysis[:800] + "..." if len(stock_analysis) > 800 else stock_analysis)
+        
+        # Example 2: Portfolio analysis
+        print("\n" + "="*50)
+        print("2. INDIAN PORTFOLIO ANALYSIS") 
+        print("="*50)
+        
+        portfolio_analysis = agent.analyze_portfolio_indian(sample_portfolio)
+        print(portfolio_analysis[:800] + "..." if len(portfolio_analysis) > 800 else portfolio_analysis)
+        
+        # Example 3: Market outlook
+        print("\n" + "="*50)
+        print("3. INDIAN MARKET OUTLOOK")
+        print("="*50)
+        
+        market_outlook = agent.market_outlook_indian()
+        print(market_outlook[:800] + "..." if len(market_outlook) > 800 else market_outlook)
+        
+    except Exception as e:
+        print(f"❌ Error during analysis: {e}")
+    
+    print("\n" + "="*60)
+    print("🚀 Indian Stock Market Agent Demo Complete!")
+    print("💡 Key Features:")
+    print("  - Real-time NSE/BSE stock monitoring")
+    print("  - Rupee-denominated analysis")
+    print("  - Indian market hours awareness")
+    print("  - Sector-specific insights")
+    print("  - Currency impact analysis")
+    print("  - Nifty/Sensex correlation")
+    print("="*60)
+
+if __name__ == "__main__":
+    main()
