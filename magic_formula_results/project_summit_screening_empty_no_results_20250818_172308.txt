@@ -1,5 +1,0 @@
-Magic Formula Screening Results
-Date: 2025-08-18 17:23:08
-Result: No stocks passed the screening criteria
-Bond Yield: 6.43%
-EY Threshold: 10.43%
