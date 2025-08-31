@@ -114,23 +114,16 @@ class IndianStockDashboard:
             'Consumer Durables': ['ASIANPAINT', 'BERGER', 'TITAN', 'VOLTAS']
         }
         
-        # Popular Indian ETFs and Mutual Funds
+        # Specific Mutual Funds and ETFs
         self.mutual_funds = {
-            # ETFs
-            'Equity ETFs': ['NIFTYBEES', 'JUNIORBEES', 'BANKBEES'],
-            'Sectoral ETFs': ['ITBEES', 'PHARMABES', 'AUTOBEES', 'FMCGBEES'],
-            'International ETFs': ['HNGSNGBEES', 'NETFLTBEES'],
-            'Commodity ETFs': ['GOLDBEES', 'GOLDSHARE'],
-            'Other ETFs': ['PSUBEES', 'METALBEES', 'REALTYBEES'],
-            
             # Mutual Funds
-            'Large Cap Funds': ['PPFAS_FLEXI_CAP_DIRECT', 'AXIS_BLUECHIP_DIRECT', 'MIRAE_LARGECAP_DIRECT', 'HDFC_TOP100_DIRECT', 'ICICI_BLUECHIP_DIRECT'],
-            'Mid Cap Funds': ['AXIS_MIDCAP_DIRECT', 'HDFC_MIDCAP_DIRECT', 'KOTAK_EMERGING_EQUITY_DIRECT'],
-            'Small Cap Funds': ['AXIS_SMALLCAP_DIRECT', 'HDFC_SMALLCAP_DIRECT', 'SBI_SMALLCAP_DIRECT'],
-            'Flexi Cap Funds': ['PARAG_FLEXI_CAP_DIRECT', 'CANARA_FLEXI_CAP_DIRECT', 'QUANT_ACTIVE_DIRECT'],
-            'Sectoral MF': ['ICICI_TECH_DIRECT', 'AXIS_BANKING_PSU_DIRECT'],
-            'International MF': ['MOTILAL_NASDAQ_DIRECT', 'EDELWEISS_US_VALUE_DIRECT'],
-            'Debt Funds': ['AXIS_LIQUID_DIRECT', 'HDFC_LIQUID_DIRECT', 'ICICI_LIQUID_DIRECT']
+            'Flexi Cap Funds': ['PPFAS_FLEXICAP_DIRECT'],
+            'Small Cap Funds': ['HDFC_SMALLCAP_DIRECT'], 
+            'Index Funds': ['HDFC_NIFTY_NEXT50_DIRECT', 'HDFC_NIFTY50_DIRECT'],
+            'Sectoral Funds': ['NIPPON_PHARMA_DIRECT', 'ICICI_ENERGY_DIRECT'],
+            
+            # ETFs
+            'Commodity ETFs': ['HDFC_GOLD_ETF', 'HDFC_SILVER_ETF']
         }
         
         # Flatten stock list
@@ -634,7 +627,91 @@ class IndianStockDashboard:
                             asset_size = data['market_cap'] / 10000000
                             st.metric("Est. AUM", f"₹{asset_size:.0f} Cr")
             
-            # Popular funds in same category
+            # Fund Performance Analysis
+            st.subheader("📊 Fund Performance Analysis")
+            
+            # Get performance data
+            if hasattr(self, 'agent') and self.agent and hasattr(self.agent, 'calculate_fund_performance'):
+                with st.spinner("Calculating fund performance..."):
+                    try:
+                        performance_data = self.agent.calculate_fund_performance(selected_fund)
+                        
+                        if 'error' not in performance_data:
+                            # Display performance table
+                            st.subheader("🎯 Returns Comparison")
+                            
+                            periods = ['1Y', '2Y', '3Y', '5Y', '10Y', 'inception']
+                            period_labels = ['1 Year', '2 Years', '3 Years', '5 Years', '10 Years', 'Since Inception']
+                            
+                            # Create performance comparison table
+                            perf_data = []
+                            for i, period in enumerate(periods):
+                                fund_return = performance_data['returns'].get(period)
+                                benchmark_return = performance_data['benchmark_returns'].get(period)
+                                alpha = performance_data['alpha'].get(period)
+                                
+                                if fund_return is not None:
+                                    row = {
+                                        'Period': period_labels[i],
+                                        'Fund Return (%)': f"{fund_return:.1f}%" if fund_return else "N/A",
+                                        'Benchmark (%)': f"{benchmark_return:.1f}%" if benchmark_return else "N/A",
+                                        'Alpha (%)': f"{alpha:+.1f}%" if alpha else "N/A"
+                                    }
+                                    perf_data.append(row)
+                            
+                            if perf_data:
+                                perf_df = pd.DataFrame(perf_data)
+                                st.dataframe(perf_df, use_container_width=True, hide_index=True)
+                                
+                                # Performance visualization
+                                st.subheader("📈 Performance Chart")
+                                
+                                # Create bar chart comparing fund vs benchmark
+                                chart_periods = []
+                                fund_returns = []
+                                benchmark_returns = []
+                                
+                                for period in periods:
+                                    fund_ret = performance_data['returns'].get(period)
+                                    bench_ret = performance_data['benchmark_returns'].get(period)
+                                    
+                                    if fund_ret is not None and bench_ret is not None:
+                                        chart_periods.append(period)
+                                        fund_returns.append(fund_ret)
+                                        benchmark_returns.append(bench_ret)
+                                
+                                if chart_periods:
+                                    chart_df = pd.DataFrame({
+                                        'Period': chart_periods,
+                                        'Fund': fund_returns,
+                                        'Benchmark': benchmark_returns
+                                    })
+                                    
+                                    fig = px.bar(
+                                        chart_df.melt(id_vars='Period', var_name='Type', value_name='Return'),
+                                        x='Period', 
+                                        y='Return', 
+                                        color='Type',
+                                        title=f"{selected_fund.replace('_', ' ')} vs Benchmark Returns (%)",
+                                        barmode='group'
+                                    )
+                                    fig.update_layout(height=400)
+                                    st.plotly_chart(fig, use_container_width=True)
+                                
+                                # Performance insights
+                                if performance_data.get('note'):
+                                    st.info(f"ℹ️ {performance_data['note']}")
+                                
+                                # Inception date
+                                if performance_data.get('inception_date'):
+                                    st.caption(f"Fund Inception Date: {performance_data['inception_date']}")
+                        else:
+                            st.error(f"Could not calculate performance: {performance_data.get('error', 'Unknown error')}")
+                    
+                    except Exception as e:
+                        st.error(f"Performance calculation failed: {str(e)}")
+            
+            # Similar funds in category
             st.subheader(f"📈 Other {self.get_fund_category(selected_fund)} Funds")
             
             category = self.get_fund_category(selected_fund)
@@ -654,9 +731,10 @@ class IndianStockDashboard:
                     for i, (fund, data) in enumerate(similar_data.items()):
                         if 'error' not in data:
                             with cols[i]:
+                                display_name = data.get('scheme_name', fund.replace('_', ' '))
                                 color = "normal" if data['change_pct'] >= 0 else "inverse"
                                 st.metric(
-                                    fund,
+                                    display_name[:20] + "..." if len(display_name) > 20 else display_name,
                                     f"₹{data['price']:.2f}",
                                     f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
                                     delta_color=color
