@@ -399,8 +399,8 @@ class IndianStockDashboard:
                 with col1:
                     st.metric(
                         "Nifty 50",
-                        f"{nifty['price']:.1f}",
-                        f"{nifty['change']:+.1f} ({nifty['change_pct']:+.1f}%)"
+                        f"{nifty['price']:.2f}",
+                        f"{nifty['change']:+.2f} ({nifty['change_pct']:+.2f}%)"
                     )
             
             if 'SENSEX' in indices:
@@ -408,8 +408,8 @@ class IndianStockDashboard:
                 with col2:
                     st.metric(
                         "Sensex",
-                        f"{sensex['price']:.1f}",
-                        f"{sensex['change']:+.1f} ({sensex['change_pct']:+.1f}%)"
+                        f"{sensex['price']:.2f}",
+                        f"{sensex['change']:+.2f} ({sensex['change_pct']:+.2f}%)"
                     )
         
         # Watchlist stocks
@@ -427,8 +427,8 @@ class IndianStockDashboard:
                         color = "normal" if data['change_pct'] >= 0 else "inverse"
                         st.metric(
                             symbol,
-                            f"₹{data['price']:.1f}",
-                            f"₹{data['change']:+.1f} ({data['change_pct']:+.1f}%)",
+                            f"₹{data['price']:.2f}",
+                            f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
                             delta_color=color
                         )
     
