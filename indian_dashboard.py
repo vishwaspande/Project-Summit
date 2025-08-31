@@ -114,13 +114,23 @@ class IndianStockDashboard:
             'Consumer Durables': ['ASIANPAINT', 'BERGER', 'TITAN', 'VOLTAS']
         }
         
-        # Popular Indian Mutual Funds and ETFs
+        # Popular Indian ETFs and Mutual Funds
         self.mutual_funds = {
+            # ETFs
             'Equity ETFs': ['NIFTYBEES', 'JUNIORBEES', 'BANKBEES'],
             'Sectoral ETFs': ['ITBEES', 'PHARMABES', 'AUTOBEES', 'FMCGBEES'],
             'International ETFs': ['HNGSNGBEES', 'NETFLTBEES'],
             'Commodity ETFs': ['GOLDBEES', 'GOLDSHARE'],
-            'Other ETFs': ['PSUBEES', 'METALBEES', 'REALTYBEES']
+            'Other ETFs': ['PSUBEES', 'METALBEES', 'REALTYBEES'],
+            
+            # Mutual Funds
+            'Large Cap Funds': ['PPFAS_FLEXI_CAP_DIRECT', 'AXIS_BLUECHIP_DIRECT', 'MIRAE_LARGECAP_DIRECT', 'HDFC_TOP100_DIRECT', 'ICICI_BLUECHIP_DIRECT'],
+            'Mid Cap Funds': ['AXIS_MIDCAP_DIRECT', 'HDFC_MIDCAP_DIRECT', 'KOTAK_EMERGING_EQUITY_DIRECT'],
+            'Small Cap Funds': ['AXIS_SMALLCAP_DIRECT', 'HDFC_SMALLCAP_DIRECT', 'SBI_SMALLCAP_DIRECT'],
+            'Flexi Cap Funds': ['PARAG_FLEXI_CAP_DIRECT', 'CANARA_FLEXI_CAP_DIRECT', 'QUANT_ACTIVE_DIRECT'],
+            'Sectoral MF': ['ICICI_TECH_DIRECT', 'AXIS_BANKING_PSU_DIRECT'],
+            'International MF': ['MOTILAL_NASDAQ_DIRECT', 'EDELWEISS_US_VALUE_DIRECT'],
+            'Debt Funds': ['AXIS_LIQUID_DIRECT', 'HDFC_LIQUID_DIRECT', 'ICICI_LIQUID_DIRECT']
         }
         
         # Flatten stock list
@@ -171,7 +181,8 @@ class IndianStockDashboard:
         api_key = st.sidebar.text_input(
             "🔑 Claude API Key:",
             type="password",
-            help="Get from console.anthropic.com"
+            help="Get from console.anthropic.com",
+            key="claude_api_key_input"
         )
         
         if api_key:
@@ -461,14 +472,16 @@ class IndianStockDashboard:
             selected_stock = st.selectbox(
                 "Select stock for analysis:",
                 self.all_stocks,
-                index=0 if self.all_stocks else 0
+                index=0 if self.all_stocks else 0,
+                key="stock_analysis_selectbox"
             )
         
         with col2:
             chart_period = st.selectbox(
                 "Chart period:",
                 ["1D", "1W", "1M", "3M", "6M", "1Y"],
-                index=2
+                index=2,
+                key="stock_chart_period_selectbox"
             )
         
         with col3:
@@ -547,14 +560,16 @@ class IndianStockDashboard:
             selected_fund = st.selectbox(
                 "Select Mutual Fund/ETF for analysis:",
                 self.all_mutual_funds,
-                index=0 if self.all_mutual_funds else 0
+                index=0 if self.all_mutual_funds else 0,
+                key="fund_analysis_selectbox"
             )
         
         with col2:
             chart_period = st.selectbox(
                 "Chart period:",
                 ["1D", "1W", "1M", "3M", "6M", "1Y"],
-                index=2
+                index=2,
+                key="fund_chart_period_selectbox"
             )
         
         with col3:
@@ -580,23 +595,44 @@ class IndianStockDashboard:
                 if selected_fund in fund_data:
                     data = fund_data[selected_fund]
                     
-                    st.subheader(f"📊 {selected_fund} Details")
-                    st.metric("Current NAV", f"₹{data['price']:.2f}")
+                    # Display fund name if available
+                    display_name = data.get('scheme_name', selected_fund.replace('_', ' '))
+                    st.subheader(f"📊 {display_name}")
+                    
+                    # Show current NAV
+                    if data.get('is_mutual_fund'):
+                        st.metric("Current NAV", f"₹{data['price']:.2f}")
+                        if data.get('nav_date'):
+                            st.caption(f"NAV Date: {data['nav_date']}")
+                        if data.get('data_source'):
+                            st.caption(f"Data Source: {data['data_source']}")
+                    else:
+                        st.metric("Current Price", f"₹{data['price']:.2f}")
+                    
                     st.metric("Day Change", f"₹{data['change']:+.2f} ({data['change_pct']:+.1f}%)")
-                    st.metric("Day High", f"₹{data['high']:.2f}")
-                    st.metric("Day Low", f"₹{data['low']:.2f}")
+                    
+                    if not data.get('is_mutual_fund'):
+                        st.metric("Day High", f"₹{data['high']:.2f}")
+                        st.metric("Day Low", f"₹{data['low']:.2f}")
                     
                     # Display fund type
                     fund_category = self.get_fund_category(selected_fund)
                     st.info(f"**Category:** {fund_category}")
                     
-                    if data.get('volume'):
-                        st.metric("Volume", f"{data['volume']:,.0f} units")
-                    
-                    # Asset size approximation
-                    if data.get('market_cap'):
-                        asset_size = data['market_cap'] / 10000000
-                        st.metric("Est. AUM", f"₹{asset_size:.0f} Cr")
+                    # Show additional info for mutual funds
+                    if data.get('is_mutual_fund'):
+                        if data.get('scheme_code'):
+                            st.caption(f"AMFI Code: {data['scheme_code']}")
+                        if data.get('notes'):
+                            st.warning(data['notes'])
+                    else:
+                        if data.get('volume'):
+                            st.metric("Volume", f"{data['volume']:,.0f} units")
+                        
+                        # Asset size approximation
+                        if data.get('market_cap'):
+                            asset_size = data['market_cap'] / 10000000
+                            st.metric("Est. AUM", f"₹{asset_size:.0f} Cr")
             
             # Popular funds in same category
             st.subheader(f"📈 Other {self.get_fund_category(selected_fund)} Funds")
@@ -642,7 +678,7 @@ class IndianStockDashboard:
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    analysis_type = st.selectbox("Analysis Type:", analysis_options)
+                    analysis_type = st.selectbox("Analysis Type:", analysis_options, key="fund_analysis_type_selectbox")
                 
                 with col2:
                     if st.button("🚀 Generate Fund Analysis", type="secondary"):
@@ -704,23 +740,23 @@ class IndianStockDashboard:
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            investment_type = st.radio("Investment Type:", ["Stocks", "Mutual Funds/ETFs"], horizontal=True)
+            investment_type = st.radio("Investment Type:", ["Stocks", "Mutual Funds/ETFs"], horizontal=True, key="portfolio_investment_type_radio")
             if investment_type == "Stocks":
-                new_symbol = st.selectbox("Stock:", self.popular_stocks)
+                new_symbol = st.selectbox("Stock:", self.popular_stocks, key="portfolio_stock_selectbox")
             else:
-                new_symbol = st.selectbox("Mutual Fund/ETF:", self.all_mutual_funds)
+                new_symbol = st.selectbox("Mutual Fund/ETF:", self.all_mutual_funds, key="portfolio_fund_selectbox")
         
         with col2:
             if investment_type == "Stocks":
-                new_quantity = st.number_input("Shares:", min_value=1, value=100)
+                new_quantity = st.number_input("Shares:", min_value=1, value=100, key="portfolio_stock_quantity")
             else:
-                new_quantity = st.number_input("Units:", min_value=1, value=100)
+                new_quantity = st.number_input("Units:", min_value=1, value=100, key="portfolio_fund_quantity")
         
         with col3:
             if investment_type == "Stocks":
-                new_price = st.number_input("Avg Price (₹):", min_value=0.01, value=100.0)
+                new_price = st.number_input("Avg Price (₹):", min_value=0.01, value=100.0, key="portfolio_stock_price")
             else:
-                new_price = st.number_input("Avg NAV (₹):", min_value=0.01, value=50.0)
+                new_price = st.number_input("Avg NAV (₹):", min_value=0.01, value=50.0, key="portfolio_fund_price")
         
         with col4:
             st.write("")  # Empty space for alignment
@@ -887,7 +923,8 @@ class IndianStockDashboard:
                             "Rebalancing Suggestions",
                             "Sector Analysis",
                             "Performance vs Market"
-                        ]
+                        ],
+                        key="portfolio_analysis_type_selectbox"
                     )
                 
                 with col2:
@@ -1148,7 +1185,8 @@ class IndianStockDashboard:
         user_question = st.text_area(
             "Ask about Indian stocks or markets:",
             placeholder="e.g., Should I invest in IT stocks right now? What's the outlook for banking sector?",
-            height=100
+            height=100,
+            key="market_chat_textarea"
         )
         
         if st.button("💬 Get AI Response", type="primary") and user_question:
@@ -1187,7 +1225,8 @@ class IndianStockDashboard:
         # Add to watchlist
         new_watchlist_stock = st.sidebar.selectbox(
             "Add to watchlist:",
-            [stock for stock in self.popular_stocks if stock not in st.session_state.watchlist]
+            [stock for stock in self.popular_stocks if stock not in st.session_state.watchlist],
+            key="sidebar_add_watchlist_selectbox"
         )
         
         if st.sidebar.button("➕ Add to Watchlist"):
@@ -1200,7 +1239,8 @@ class IndianStockDashboard:
         if st.session_state.watchlist:
             remove_stock = st.sidebar.selectbox(
                 "Remove from watchlist:",
-                st.session_state.watchlist
+                st.session_state.watchlist,
+                key="sidebar_remove_watchlist_selectbox"
             )
             
             if st.sidebar.button("➖ Remove"):
