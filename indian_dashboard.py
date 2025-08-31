@@ -1719,45 +1719,45 @@ class IndianStockDashboard:
 
 
     def run(self):
-    """Main dashboard runner."""
-    try:
-        # Render sidebar
-        self.render_sidebar_controls()
-        
-        # Render main content
-        self.render_header()
-        
-        # Main tabs - ADD the new global indices tab
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-            "📊 Market Overview",
-            "📈 Stock Analysis", 
-            "🏦 Mutual Funds/ETFs",
-            "💼 Portfolio",
-            "🌍 Global Markets",  # NEW TAB
-            "🤖 AI Assistant"
-        ])
-        
-        with tab1:
-            self.render_market_overview()
-        
-        with tab2:
-            self.render_stock_analysis()
-        
-        with tab3:
-            self.render_mutual_funds_analysis()
-        
-        with tab4:
-            self.render_portfolio()
-        
-        with tab5:  # NEW TAB CONTENT
-            self.render_global_indices()
-        
-        with tab6:  # Updated tab number
-            self.render_market_chat()
-        
-    except Exception as e:
-        st.error(f"Dashboard error: {str(e)}")
-        st.info("Please refresh the page or check your setup")
+        """Main dashboard runner."""
+        try:
+            # Render sidebar
+            self.render_sidebar_controls()
+            
+            # Render main content
+            self.render_header()
+            
+            # Main tabs - ADD the new global indices tab
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+                "📊 Market Overview",
+                "📈 Stock Analysis", 
+                "🏦 Mutual Funds/ETFs",
+                "💼 Portfolio",
+                "🌍 Global Markets",  # NEW TAB
+                "🤖 AI Assistant"
+            ])
+            
+            with tab1:
+                self.render_market_overview()
+            
+            with tab2:
+                self.render_stock_analysis()
+            
+            with tab3:
+                self.render_mutual_funds_analysis()
+            
+            with tab4:
+                self.render_portfolio()
+            
+            with tab5:  # NEW TAB CONTENT
+                self.render_global_indices()
+            
+            with tab6:  # Updated tab number
+                self.render_market_chat()
+            
+        except Exception as e:
+            st.error(f"Dashboard error: {str(e)}")
+            st.info("Please refresh the page or check your setup")
 
 # Main execution
 if __name__ == "__main__":
