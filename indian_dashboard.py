@@ -681,35 +681,267 @@ class IndianStockDashboard:
                     fig.update_layout(height=400)
                     st.plotly_chart(fig, use_container_width=True)
             
-            # AI Portfolio Analysis
-            if self.claude_client and st.button("🤖 Analyze Portfolio"):
-                portfolio_summary = []
-                for symbol, position in st.session_state.portfolio.items():
-                    current_price = current_data.get(symbol, {}).get('price', position['avg_price'])
-                    portfolio_summary.append(f"{symbol}: {position['qty']} shares @ ₹{position['avg_price']:.2f}, Current: ₹{current_price:.2f}")
+            # AI Portfolio Analysis Section
+            if self.claude_client:
+                st.subheader("🤖 AI Portfolio Analysis & Recommendations")
                 
-                prompt = f"""
-                Analyze this Indian stock portfolio:
+                col1, col2 = st.columns(2)
                 
-                Holdings:
-                {chr(10).join(portfolio_summary)}
+                with col1:
+                    analysis_type = st.selectbox(
+                        "Analysis Type:",
+                        [
+                            "Complete Portfolio Review",
+                            "Buy/Sell Recommendations", 
+                            "Risk Assessment",
+                            "Rebalancing Suggestions",
+                            "Sector Analysis",
+                            "Performance vs Market"
+                        ]
+                    )
                 
-                Total Invested: ₹{total_invested:,.0f}
-                Current Value: ₹{total_current:,.0f}
-                Total P&L: {total_pnl_pct:+.1f}%
+                with col2:
+                    if st.button("🚀 Generate AI Analysis", type="primary", key="portfolio_analysis"):
+                        # Prepare detailed portfolio data for Claude
+                        portfolio_summary = []
+                        sector_allocation = {}
+                        total_portfolio_value = 0
+                        individual_performance = []
+                        
+                        for symbol, position in st.session_state.portfolio.items():
+                            if symbol in current_data and 'error' not in current_data[symbol]:
+                                current_price = current_data[symbol]['price']
+                                sector = current_data[symbol].get('sector', 'Unknown')
+                                pe_ratio = current_data[symbol].get('pe_ratio', 'N/A')
+                                day_change_pct = current_data[symbol].get('change_pct', 0)
+                            else:
+                                current_price = position['avg_price']
+                                sector = 'Unknown'
+                                pe_ratio = 'N/A'
+                                day_change_pct = 0
+                            
+                            qty = float(position['qty'])
+                            avg_price = float(position['avg_price'])
+                            invested = qty * avg_price
+                            current_value = qty * current_price
+                            pnl = current_value - invested
+                            pnl_pct = (pnl / invested * 100) if invested > 0 else 0
+                            
+                            total_portfolio_value += current_value
+                            
+                            # Sector allocation
+                            if sector not in sector_allocation:
+                                sector_allocation[sector] = 0
+                            sector_allocation[sector] += current_value
+                            
+                            portfolio_summary.append(f"""
+                            {symbol} ({sector}):
+                            - Holdings: {int(qty)} shares @ ₹{avg_price:.2f} avg cost
+                            - Current Price: ₹{current_price:.2f} (today: {day_change_pct:+.1f}%)
+                            - Investment: ₹{invested:,.0f} → Current Value: ₹{current_value:,.0f}
+                            - P&L: ₹{pnl:,.0f} ({pnl_pct:+.1f}%)
+                            - P/E Ratio: {pe_ratio}
+                            - Portfolio Weight: {(current_value/total_portfolio_value)*100:.1f}%
+                            """)
+                            
+                            individual_performance.append({
+                                'symbol': symbol,
+                                'sector': sector,
+                                'pnl_pct': pnl_pct,
+                                'weight': (current_value/total_portfolio_value)*100,
+                                'current_price': current_price,
+                                'avg_price': avg_price
+                            })
+                        
+                        # Calculate sector allocation percentages
+                        sector_percentages = {sector: (value/total_portfolio_value)*100 
+                                           for sector, value in sector_allocation.items()}
+                        
+                        # Get market context
+                        indices_data = self.get_indices_data()
+                        nifty_change = indices_data.get('NIFTY', {}).get('change_pct', 0)
+                        sensex_change = indices_data.get('SENSEX', {}).get('change_pct', 0)
+                        
+                        # Create comprehensive prompt based on analysis type
+                        if analysis_type == "Complete Portfolio Review":
+                            prompt = f"""
+                            Conduct a comprehensive review of this Indian stock portfolio:
+                            
+                            PORTFOLIO HOLDINGS:
+                            {chr(10).join(portfolio_summary)}
+                            
+                            PORTFOLIO SUMMARY:
+                            - Total Portfolio Value: ₹{total_portfolio_value:,.0f}
+                            - Total P&L: ₹{total_pnl:,.0f} ({total_pnl_pct:+.1f}%)
+                            - Number of Holdings: {len(st.session_state.portfolio)}
+                            
+                            SECTOR ALLOCATION:
+                            {chr(10).join([f"- {sector}: {pct:.1f}%" for sector, pct in sector_percentages.items()])}
+                            
+                            MARKET CONTEXT:
+                            - Nifty 50: {nifty_change:+.1f}% today
+                            - Sensex: {sensex_change:+.1f}% today
+                            
+                            Provide comprehensive analysis covering:
+                            1. **Overall Portfolio Health** - Risk/return profile
+                            2. **Diversification Assessment** - Sector and stock concentration
+                            3. **Performance Analysis** - vs market benchmarks
+                            4. **Individual Stock Review** - Each holding's prospects
+                            5. **Risk Factors** - What could hurt the portfolio
+                            6. **Opportunities** - What's missing or underweight
+                            7. **Action Plan** - Specific next steps for optimization
+                            
+                            Be specific with stock names, percentages, and actionable recommendations.
+                            """
+                        
+                        elif analysis_type == "Buy/Sell Recommendations":
+                            prompt = f"""
+                            Provide specific BUY/SELL recommendations for this Indian portfolio:
+                            
+                            CURRENT HOLDINGS:
+                            {chr(10).join(portfolio_summary)}
+                            
+                            MARKET CONTEXT:
+                            - Nifty 50: {nifty_change:+.1f}% today
+                            - Sensex: {sensex_change:+.1f}% today
+                            - Portfolio Total: ₹{total_portfolio_value:,.0f}
+                            
+                            For each stock in the portfolio, provide:
+                            
+                            **INDIVIDUAL STOCK RECOMMENDATIONS:**
+                            For each holding, specify:
+                            - 🔴 SELL: If you recommend selling (with target exit price)
+                            - 🟡 HOLD: If you recommend holding (with price targets)  
+                            - 🟢 BUY MORE: If you recommend adding (with entry price)
+                            
+                            **NEW STOCK RECOMMENDATIONS:**
+                            - What NEW Indian stocks to BUY for better diversification
+                            - Specific entry prices and position sizes
+                            - Rationale for each recommendation
+                            
+                            **PORTFOLIO ACTIONS:**
+                            - Which existing position to REDUCE and by how much
+                            - Which existing position to INCREASE and by how much
+                            - Timeline for these actions (immediate vs gradual)
+                            
+                            Be very specific with prices, quantities, and reasoning.
+                            """
+                        
+                        elif analysis_type == "Risk Assessment":
+                            prompt = f"""
+                            Assess the risk profile of this Indian portfolio:
+                            
+                            PORTFOLIO DETAILS:
+                            {chr(10).join(portfolio_summary)}
+                            
+                            RISK ANALYSIS REQUIRED:
+                            1. **Concentration Risk** - Over-exposure to specific stocks/sectors
+                            2. **Market Risk** - Sensitivity to Nifty/Sensex movements
+                            3. **Sector Risk** - Regulatory or industry-specific risks
+                            4. **Currency Risk** - USD/INR exposure through IT/Pharma stocks
+                            5. **Liquidity Risk** - Ability to exit positions quickly
+                            6. **Volatility Assessment** - Expected price swings
+                            
+                            Provide:
+                            - Risk score (1-10) with reasoning
+                            - Biggest risk factors in the portfolio
+                            - Hedging recommendations
+                            - Stop-loss suggestions for each holding
+                            - Portfolio stress test scenarios
+                            """
+                        
+                        elif analysis_type == "Rebalancing Suggestions":
+                            prompt = f"""
+                            Suggest portfolio rebalancing for optimal allocation:
+                            
+                            CURRENT ALLOCATION:
+                            {chr(10).join(portfolio_summary)}
+                            
+                            SECTOR WEIGHTS:
+                            {chr(10).join([f"- {sector}: {pct:.1f}%" for sector, pct in sector_percentages.items()])}
+                            
+                            Provide specific rebalancing plan:
+                            1. **Target Allocation** - Ideal sector/stock weights
+                            2. **Trades Required** - Exact buy/sell amounts in ₹
+                            3. **Priority Order** - Which trades to do first
+                            4. **Tax Implications** - LTCG/STCG considerations
+                            5. **Execution Timeline** - When to make each trade
+                            6. **Alternative Approach** - Gradual vs immediate rebalancing
+                            
+                            Focus on practical, executable recommendations.
+                            """
+                        
+                        elif analysis_type == "Sector Analysis":
+                            prompt = f"""
+                            Analyze the sectoral composition of this portfolio:
+                            
+                            SECTOR BREAKDOWN:
+                            {chr(10).join([f"- {sector}: {pct:.1f}% (₹{sector_allocation[sector]:,.0f})" for sector, pct in sector_percentages.items()])}
+                            
+                            INDIVIDUAL HOLDINGS:
+                            {chr(10).join(portfolio_summary)}
+                            
+                            Analyze:
+                            1. **Sector Diversification** - Over/under-weight analysis
+                            2. **Sector Outlook** - Which sectors to increase/decrease
+                            3. **Missing Sectors** - What's not represented
+                            4. **Sector Correlation** - Risk of sectors moving together
+                            5. **Policy Impact** - Government policies affecting each sector
+                            6. **Cyclical Analysis** - Sector rotation opportunities
+                            
+                            Recommend specific sector allocation changes.
+                            """
+                        
+                        else:  # Performance vs Market
+                            prompt = f"""
+                            Compare this portfolio's performance against Indian market benchmarks:
+                            
+                            PORTFOLIO PERFORMANCE:
+                            Total P&L: {total_pnl_pct:+.1f}%
+                            
+                            INDIVIDUAL STOCK PERFORMANCE:
+                            {chr(10).join([f"- {perf['symbol']}: {perf['pnl_pct']:+.1f}% (weight: {perf['weight']:.1f}%)" for perf in individual_performance])}
+                            
+                            TODAY'S MARKET:
+                            - Nifty 50: {nifty_change:+.1f}%
+                            - Sensex: {sensex_change:+.1f}%
+                            
+                            Analyze:
+                            1. **Benchmark Comparison** - vs Nifty 50, Sensex performance
+                            2. **Alpha Generation** - Which stocks outperformed market
+                            3. **Beta Analysis** - Portfolio sensitivity to market moves
+                            4. **Attribution Analysis** - What drove performance
+                            5. **Risk-Adjusted Returns** - Return per unit of risk taken
+                            6. **Improvement Areas** - How to beat benchmarks consistently
+                            """
+                        
+                        # Generate analysis
+                        with st.spinner(f"🤖 Generating {analysis_type.lower()}..."):
+                            analysis = self.call_claude_analysis(prompt)
+                            
+                            st.markdown(f"### 🤖 {analysis_type}")
+                            st.markdown(analysis)
+                            
+                            # Save analysis to session state for reference
+                            if 'analysis_history' not in st.session_state:
+                                st.session_state.analysis_history = []
+                            
+                            st.session_state.analysis_history.append({
+                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'type': analysis_type,
+                                'analysis': analysis[:500] + "..." if len(analysis) > 500 else analysis
+                            })
                 
-                Provide:
-                1. Portfolio health assessment
-                2. Diversification analysis
-                3. Rebalancing suggestions
-                4. Risk factors
-                5. Recommended actions
-                """
-                
-                with st.spinner("🤖 Analyzing portfolio..."):
-                    analysis = self.call_claude_analysis(prompt)
-                    st.markdown("### Portfolio Analysis")
-                    st.markdown(analysis)
+                # Show recent analysis history
+                if 'analysis_history' in st.session_state and st.session_state.analysis_history:
+                    with st.expander("📚 Recent Analysis History"):
+                        for i, hist in enumerate(reversed(st.session_state.analysis_history[-5:])):
+                            st.markdown(f"**{hist['timestamp']} - {hist['type']}**")
+                            st.text(hist['analysis'])
+                            st.markdown("---")
+            
+            else:
+                st.info("🔑 Configure Claude API key in sidebar to get AI portfolio analysis and buy/sell recommendations")
         
         else:
             st.info("Add some positions to see portfolio analysis")
