@@ -154,6 +154,13 @@ class IndianStockDashboard:
         self.claude_client = None
         self.agent = None
         self.setup_ai()
+        
+        # Initialize agent for performance calculation even without API key
+        try:
+            from indian_stock_market_agent import IndianStockMarketAgent
+            self.agent = IndianStockMarketAgent()  # Initialize without API key for basic functionality
+        except Exception as e:
+            print(f"Warning: Could not initialize agent for performance analysis: {e}")
     
     def init_session_state(self):
         """Initialize session state variables."""
@@ -760,7 +767,8 @@ class IndianStockDashboard:
                 
                 with col2:
                     if st.button("🚀 Generate Fund Analysis", type="secondary"):
-                        if selected_fund in fund_data and 'error' not in fund_data[selected_fund]:
+                        fund_data_for_analysis = self.get_stock_data([selected_fund])
+                        if selected_fund in fund_data_for_analysis and 'error' not in fund_data_for_analysis[selected_fund]:
                             with st.spinner("🤖 Analyzing fund..."):
                                 try:
                                     # Use the agent's mutual fund analysis method
@@ -776,8 +784,9 @@ class IndianStockDashboard:
                 st.subheader("🤖 Basic AI Fund Analysis")
                 
                 if st.button("Generate Basic Fund Analysis", type="secondary"):
-                    if selected_fund in fund_data:
-                        data = fund_data[selected_fund]
+                    fund_data_for_basic_analysis = self.get_stock_data([selected_fund])
+                    if selected_fund in fund_data_for_basic_analysis:
+                        data = fund_data_for_basic_analysis[selected_fund]
                         
                         prompt = f"""
                         Analyze this Indian ETF/Mutual Fund: {selected_fund}
