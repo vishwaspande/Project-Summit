@@ -1359,42 +1359,405 @@ class IndianStockDashboard:
         else:
             st.sidebar.warning("⚠️ Agent Import Failed")
     
-    def run(self):
-        """Main dashboard runner."""
+# Code for Global indices
+    def get_global_indices_data(self) -> Dict:
+        """Fetch major global indices data."""
+        indices = {}
+        
+        # Global indices with their yfinance symbols
+        global_indices_map = {
+            # US Indices
+            'S&P 500': '^GSPC',
+            'NASDAQ': '^IXIC', 
+            'Dow Jones': '^DJI',
+            
+            # Asian Indices
+            'Nikkei 225': '^N225',
+            'Hang Seng': '^HSI',
+            'Shanghai Composite': '000001.SS',
+            'KOSPI': '^KS11',
+            'Taiwan Weighted': '^TWII',
+            
+            # European Indices
+            'FTSE 100': '^FTSE',
+            'DAX': '^GDAXI',
+            'CAC 40': '^FCHI',
+            'Euro Stoxx 50': '^STOXX50E',
+            'FTSE MIB': 'FTSEMIB.MI',
+            
+            # Other Major Indices
+            'TSX (Canada)': '^GSPTSE',
+            'ASX 200 (Australia)': '^AXJO',
+            'Bovespa (Brazil)': '^BVSP',
+            'FTSE/JSE (South Africa)': '^J203.JO',
+            
+            # Emerging Markets
+            'MSCI Emerging Markets': 'EEM',
+            'FTSE Emerging': 'VWO',
+            
+            # Commodities (as indices)
+            'Gold': 'GC=F',
+            'Crude Oil': 'CL=F',
+            'Silver': 'SI=F',
+            'Copper': 'HG=F'
+        }
+        
+        for name, symbol in global_indices_map.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="2d")  # Get 2 days to calculate change
+                
+                if not hist.empty and len(hist) >= 1:
+                    current_price = hist['Close'].iloc[-1]
+                    
+                    # Calculate daily change
+                    if len(hist) >= 2:
+                        prev_close = hist['Close'].iloc[-2]
+                    else:
+                        prev_close = hist['Open'].iloc[0]
+                    
+                    change = current_price - prev_close
+                    change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                    
+                    indices[name] = {
+                        'symbol': symbol,
+                        'price': current_price,
+                        'prev_close': prev_close,
+                        'change': change,
+                        'change_pct': change_pct,
+                        'high': hist['High'].iloc[-1] if len(hist) > 0 else current_price,
+                        'low': hist['Low'].iloc[-1] if len(hist) > 0 else current_price,
+                        'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
+                        'timestamp': datetime.now(),
+                        'region': self.get_region_for_index(name)
+                    }
+                    
+            except Exception as e:
+                print(f"Error fetching {name}: {e}")
+                # Continue to next index instead of failing completely
+        
+        return indices
+
+    def get_region_for_index(self, index_name: str) -> str:
+        """Get region for an index."""
+        regions = {
+            'North America': ['S&P 500', 'NASDAQ', 'Dow Jones', 'TSX (Canada)'],
+            'Asia Pacific': ['Nikkei 225', 'Hang Seng', 'Shanghai Composite', 'KOSPI', 'Taiwan Weighted', 'ASX 200 (Australia)'],
+            'Europe': ['FTSE 100', 'DAX', 'CAC 40', 'Euro Stoxx 50', 'FTSE MIB'],
+            'Emerging Markets': ['Bovespa (Brazil)', 'FTSE/JSE (South Africa)', 'MSCI Emerging Markets', 'FTSE Emerging'],
+            'Commodities': ['Gold', 'Crude Oil', 'Silver', 'Copper']
+        }
+        
+        for region, indices in regions.items():
+            if index_name in indices:
+                return region
+        return 'Other'
+
+    def create_global_heatmap(self, indices_data: Dict) -> go.Figure:
+        """Create a heatmap of global market performance."""
+        if not indices_data:
+            return None
+        
+        # Prepare data for heatmap
+        regions = {}
+        for name, data in indices_data.items():
+            region = data['region']
+            if region not in regions:
+                regions[region] = []
+            
+            regions[region].append({
+                'name': name,
+                'change_pct': data['change_pct'],
+                'price': data['price']
+            })
+        
+        # Create heatmap data
+        all_names = []
+        all_regions = []
+        all_changes = []
+        
+        for region, indices in regions.items():
+            for index in indices:
+                all_names.append(index['name'])
+                all_regions.append(region)
+                all_changes.append(index['change_pct'])
+        
+        # Create the heatmap
+        fig = go.Figure(data=go.Scatter(
+            x=all_regions,
+            y=all_names,
+            mode='markers+text',
+            marker=dict(
+                size=[abs(change)*3 + 20 for change in all_changes],  # Size based on change magnitude
+                color=all_changes,
+                colorscale='RdYlGn',
+                colorbar=dict(title="Change %"),
+                line=dict(width=1, color='white')
+            ),
+            text=[f"{change:+.1f}%" for change in all_changes],
+            textposition="middle center",
+            textfont=dict(color='white', size=10, family='Arial Black'),
+            hovertemplate='<b>%{y}</b><br>' +
+                        'Region: %{x}<br>' +
+                        'Change: %{text}<br>' +
+                        '<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            title="🌍 Global Market Performance Heatmap",
+            xaxis_title="Region",
+            yaxis_title="Index",
+            height=600,
+            template="plotly_white"
+        )
+        
+        return fig
+
+    def render_global_indices(self):
+        """Render global indices section."""
+        st.header("🌍 Global Market Indices")
+        
+        # Add refresh button
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("🔄 Refresh Global Data", type="primary"):
+                st.rerun()
+        
+        # Fetch global indices data
+        with st.spinner("📡 Fetching global market data..."):
+            global_data = self.get_global_indices_data()
+        
+        if not global_data:
+            st.error("Could not fetch global indices data. Please try again.")
+            return
+        
+        # Performance overview
+        st.subheader("📊 Today's Global Performance")
+        
+        # Group by regions
+        regions = {}
+        for name, data in global_data.items():
+            region = data['region']
+            if region not in regions:
+                regions[region] = []
+            regions[region].append((name, data))
+        
+        # Display by regions
+        for region, indices in regions.items():
+            st.markdown(f"### {region}")
+            
+            # Calculate number of columns based on number of indices
+            num_cols = min(len(indices), 4)
+            cols = st.columns(num_cols)
+            
+            for i, (name, data) in enumerate(indices):
+                with cols[i % num_cols]:
+                    # Format price based on index type
+                    if data['region'] == 'Commodities':
+                        if 'Gold' in name or 'Silver' in name:
+                            price_text = f"${data['price']:.2f}/oz"
+                        else:
+                            price_text = f"${data['price']:.2f}/bbl"
+                    else:
+                        price_text = f"{data['price']:.2f}"
+                    
+                    color = "normal" if data['change_pct'] >= 0 else "inverse"
+                    st.metric(
+                        name,
+                        price_text,
+                        f"{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
+                        delta_color=color
+                    )
+        
+        # Global heatmap
+        st.subheader("🗺️ Global Performance Heatmap")
+        heatmap_fig = self.create_global_heatmap(global_data)
+        if heatmap_fig:
+            st.plotly_chart(heatmap_fig, use_container_width=True)
+        
+        # Market correlation analysis
+        st.subheader("📈 Market Trends Analysis")
+        
+        # Winners and losers
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 🏆 Top Performers")
+            winners = sorted(global_data.items(), key=lambda x: x[1]['change_pct'], reverse=True)[:5]
+            for name, data in winners:
+                st.success(f"**{name}**: +{data['change_pct']:.2f}%")
+        
+        with col2:
+            st.markdown("#### 📉 Underperformers") 
+            losers = sorted(global_data.items(), key=lambda x: x[1]['change_pct'])[:5]
+            for name, data in losers:
+                st.error(f"**{name}**: {data['change_pct']:.2f}%")
+        
+        # Currency impact section
+        st.subheader("💱 Currency Impact on Indian Markets")
+        
+        usd_inr = self.get_usd_inr_rate()
+        
+        # Get USD index (DXY) if available
         try:
-            # Render sidebar
-            self.render_sidebar_controls()
-            
-            # Render main content
-            self.render_header()
-            
-            # Main tabs
-            tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                "📊 Market Overview",
-                "📈 Stock Analysis", 
-                "🏦 Mutual Funds/ETFs",
-                "💼 Portfolio",
-                "🤖 AI Assistant"
-            ])
-            
-            with tab1:
-                self.render_market_overview()
-            
-            with tab2:
-                self.render_stock_analysis()
-            
-            with tab3:
-                self.render_mutual_funds_analysis()
-            
-            with tab4:
-                self.render_portfolio()
-            
-            with tab5:
-                self.render_market_chat()
-            
+            dxy = yf.Ticker('DX-Y.NYB')
+            dxy_hist = dxy.history(period="2d")
+            if not dxy_hist.empty:
+                dxy_current = dxy_hist['Close'].iloc[-1]
+                dxy_prev = dxy_hist['Close'].iloc[-2] if len(dxy_hist) >= 2 else dxy_hist['Open'].iloc[0]
+                dxy_change = ((dxy_current - dxy_prev) / dxy_prev * 100) if dxy_prev > 0 else 0
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("USD Index (DXY)", f"{dxy_current:.2f}", f"{dxy_change:+.2f}%")
+                
+                with col2:
+                    st.metric("USD/INR", f"₹{usd_inr:.2f}")
+                
+                with col3:
+                    # Show impact on IT stocks (USD exposure)
+                    if 'TCS' in current_data or 'INFY' in current_data:
+                        it_impact = "Positive" if dxy_change > 0 else "Negative"
+                        st.info(f"IT Stock Impact: {it_impact}")
+        
         except Exception as e:
-            st.error(f"Dashboard error: {str(e)}")
-            st.info("Please refresh the page or check your setup")
+            st.warning("Could not fetch currency data")
+        
+        # Global market insights
+        if self.claude_client:
+            st.subheader("🤖 Global Market Insights")
+            
+            if st.button("Generate Global Market Analysis", type="secondary"):
+                # Prepare global market summary for AI
+                market_summary = []
+                regional_performance = {}
+                
+                for name, data in global_data.items():
+                    region = data['region']
+                    change_pct = data['change_pct']
+                    
+                    market_summary.append(f"- {name}: {change_pct:+.2f}%")
+                    
+                    if region not in regional_performance:
+                        regional_performance[region] = []
+                    regional_performance[region].append(change_pct)
+                
+                # Calculate regional averages
+                regional_avg = {region: sum(changes)/len(changes) 
+                            for region, changes in regional_performance.items()}
+                
+                prompt = f"""
+                Analyze today's global market performance and its implications for Indian investors:
+                
+                GLOBAL INDICES PERFORMANCE:
+                {chr(10).join(market_summary)}
+                
+                REGIONAL AVERAGES:
+                {chr(10).join([f"- {region}: {avg:+.1f}%" for region, avg in regional_avg.items()])}
+                
+                USD/INR: ₹{usd_inr:.2f}
+                
+                Provide analysis covering:
+                1. **Global Market Sentiment** - Risk-on or risk-off mood
+                2. **Impact on Indian Markets** - How global moves affect Nifty/Sensex
+                3. **Sector Implications** - Which Indian sectors benefit/suffer
+                4. **Currency Effects** - USD/INR impact on IT, Pharma exporters
+                5. **Investment Strategy** - Should Indian investors adjust portfolios
+                6. **Opportunities** - Any global trends to capitalize on locally
+                
+                Keep recommendations specific to Indian market context.
+                """
+                
+                with st.spinner("🤖 Analyzing global markets..."):
+                    analysis = self.call_claude_analysis(prompt)
+                    st.markdown("### 🌍 Global Market Analysis")
+                    st.markdown(analysis)
+        
+        # Time zone display
+        st.subheader("🕒 Global Market Hours")
+        
+        # Define major market hours (in IST)
+        market_hours = {
+            'Indian Markets': ('09:15', '15:30'),
+            'Tokyo': ('05:30', '11:30'),
+            'Hong Kong': ('06:45', '13:00'),
+            'London': ('13:30', '22:00'),
+            'New York': ('19:30', '02:00')  # Next day
+        }
+        
+        current_ist = datetime.now(self.ist)
+        current_time = current_ist.time()
+        
+        cols = st.columns(len(market_hours))
+        
+        for i, (market, (open_time, close_time)) in enumerate(market_hours.items()):
+            with cols[i]:
+                open_dt = datetime.strptime(open_time, "%H:%M").time()
+                close_dt = datetime.strptime(close_time, "%H:%M").time()
+                
+                # Handle overnight sessions (like NY)
+                if close_dt < open_dt:  # Overnight session
+                    is_open = current_time >= open_dt or current_time <= close_dt
+                else:
+                    is_open = open_dt <= current_time <= close_dt
+                
+                # Account for weekends
+                is_weekend = current_ist.weekday() >= 5
+                if is_weekend and market != 'Commodities':
+                    is_open = False
+                
+                status = "🟢 OPEN" if is_open else "🔴 CLOSED"
+                
+                st.metric(
+                    market,
+                    f"{open_time}-{close_time} IST",
+                    status
+                )
+
+
+
+
+    def run(self):
+    """Main dashboard runner."""
+    try:
+        # Render sidebar
+        self.render_sidebar_controls()
+        
+        # Render main content
+        self.render_header()
+        
+        # Main tabs - ADD the new global indices tab
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+            "📊 Market Overview",
+            "📈 Stock Analysis", 
+            "🏦 Mutual Funds/ETFs",
+            "💼 Portfolio",
+            "🌍 Global Markets",  # NEW TAB
+            "🤖 AI Assistant"
+        ])
+        
+        with tab1:
+            self.render_market_overview()
+        
+        with tab2:
+            self.render_stock_analysis()
+        
+        with tab3:
+            self.render_mutual_funds_analysis()
+        
+        with tab4:
+            self.render_portfolio()
+        
+        with tab5:  # NEW TAB CONTENT
+            self.render_global_indices()
+        
+        with tab6:  # Updated tab number
+            self.render_market_chat()
+        
+    except Exception as e:
+        st.error(f"Dashboard error: {str(e)}")
+        st.info("Please refresh the page or check your setup")
 
 # Main execution
 if __name__ == "__main__":
