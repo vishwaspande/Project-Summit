@@ -549,50 +549,137 @@ class IndianStockDashboard:
         if st.session_state.portfolio:
             st.subheader("📊 Current Portfolio")
             
-            # Get current prices
+            # Get current prices with better error handling
             symbols = list(st.session_state.portfolio.keys())
-            current_data = self.get_stock_data(symbols)
+            
+            with st.spinner("📊 Fetching live prices for portfolio..."):
+                current_data = self.get_stock_data(symbols)
+            
+            if not current_data:
+                st.error("❌ Could not fetch current market data. Please try refreshing.")
+                return
             
             portfolio_data = []
             total_invested = 0
             total_current = 0
+            portfolio_debug = []  # For debugging
             
             for symbol, position in st.session_state.portfolio.items():
-                current_price = current_data.get(symbol, {}).get('price', position['avg_price'])
-                invested = position['qty'] * position['avg_price']
-                current_value = position['qty'] * current_price
-                pnl = current_value - invested
-                pnl_pct = (pnl / invested * 100) if invested > 0 else 0
-                
-                total_invested += invested
-                total_current += current_value
-                
-                portfolio_data.append({
-                    'Stock': symbol,
-                    'Qty': position['qty'],
-                    'Avg Price': f"₹{position['avg_price']:.2f}",
-                    'Current Price': f"₹{current_price:.2f}",
-                    'Invested': f"₹{invested:,.0f}",
-                    'Current Value': f"₹{current_value:,.0f}",
-                    'P&L': f"₹{pnl:,.0f}",
-                    'P&L %': f"{pnl_pct:+.1f}%"
-                })
+                try:
+                    # Get current price with fallback
+                    if symbol in current_data and 'error' not in current_data[symbol]:
+                        current_price = current_data[symbol]['price']
+                        price_source = "Live"
+                    else:
+                        current_price = position['avg_price']  # Fallback to avg price
+                        price_source = "Fallback"
+                    
+                    # Calculate values
+                    qty = float(position['qty'])
+                    avg_price = float(position['avg_price'])
+                    
+                    invested = qty * avg_price
+                    current_value = qty * current_price
+                    pnl = current_value - invested
+                    pnl_pct = (pnl / invested * 100) if invested > 0 else 0
+                    
+                    # Add to totals
+                    total_invested += invested
+                    total_current += current_value
+                    
+                    # Debug info
+                    portfolio_debug.append(f"{symbol}: {qty} × ₹{avg_price:.2f} = ₹{invested:,.0f} invested, {qty} × ₹{current_price:.2f} = ₹{current_value:,.0f} current")
+                    
+                    # Color coding for P&L
+                    pnl_color = "🟢" if pnl >= 0 else "🔴"
+                    
+                    portfolio_data.append({
+                        'Stock': symbol,
+                        'Qty': int(qty),
+                        'Avg Price': f"₹{avg_price:.2f}",
+                        'Current Price': f"₹{current_price:.2f} ({price_source})",
+                        'Invested': f"₹{invested:,.0f}",
+                        'Current Value': f"₹{current_value:,.0f}",
+                        'P&L': f"{pnl_color} ₹{pnl:,.0f}",
+                        'P&L %': f"{pnl_color} {pnl_pct:+.1f}%"
+                    })
+                    
+                except Exception as e:
+                    st.error(f"Error calculating P&L for {symbol}: {e}")
+                    portfolio_debug.append(f"ERROR with {symbol}: {e}")
             
-            # Portfolio summary
+            # Portfolio summary with debugging
             total_pnl = total_current - total_invested
             total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0
             
-            col1, col2, col3 = st.columns(3)
+            # Debug expander
+            with st.expander("🔍 Debug Portfolio Calculations"):
+                st.text("Calculation Details:")
+                for debug_line in portfolio_debug:
+                    st.text(debug_line)
+                st.text(f"Total Invested: ₹{total_invested:,.0f}")
+                st.text(f"Total Current: ₹{total_current:,.0f}")
+                st.text(f"Total P&L: ₹{total_pnl:,.0f} ({total_pnl_pct:+.1f}%)")
+            
+            # Portfolio summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
             with col1:
                 st.metric("Total Invested", f"₹{total_invested:,.0f}")
+            
             with col2:
                 st.metric("Current Value", f"₹{total_current:,.0f}")
-            with col3:
-                st.metric("Total P&L", f"₹{total_pnl:,.0f}", f"{total_pnl_pct:+.1f}%")
             
-            # Portfolio table
-            df = pd.DataFrame(portfolio_data)
-            st.dataframe(df, use_container_width=True)
+            with col3:
+                delta_color = "normal" if total_pnl >= 0 else "inverse"
+                st.metric("Total P&L", f"₹{total_pnl:,.0f}", f"{total_pnl_pct:+.1f}%", delta_color=delta_color)
+            
+            with col4:
+                returns_text = f"{total_pnl_pct:+.1f}%"
+                if total_pnl >= 0:
+                    st.success(f"📈 Profit: {returns_text}")
+                else:
+                    st.error(f"📉 Loss: {returns_text}")
+            
+            # Portfolio table with better formatting
+            if portfolio_data:
+                df = pd.DataFrame(portfolio_data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                
+                # Individual stock performance chart
+                st.subheader("📊 Individual Stock Performance")
+                
+                perf_data = []
+                for symbol, position in st.session_state.portfolio.items():
+                    if symbol in current_data and 'error' not in current_data[symbol]:
+                        current_price = current_data[symbol]['price']
+                        qty = float(position['qty'])
+                        avg_price = float(position['avg_price'])
+                        
+                        invested = qty * avg_price
+                        current_value = qty * current_price
+                        pnl_pct = ((current_value - invested) / invested * 100) if invested > 0 else 0
+                        
+                        perf_data.append({
+                            'Stock': symbol,
+                            'P&L %': pnl_pct,
+                            'Invested': invested,
+                            'Current Value': current_value
+                        })
+                
+                if perf_data:
+                    perf_df = pd.DataFrame(perf_data)
+                    
+                    fig = px.bar(
+                        perf_df, 
+                        x='Stock', 
+                        y='P&L %',
+                        title="Portfolio Performance by Stock",
+                        color='P&L %',
+                        color_continuous_scale=['red', 'yellow', 'green']
+                    )
+                    fig.update_layout(height=400)
+                    st.plotly_chart(fig, use_container_width=True)
             
             # AI Portfolio Analysis
             if self.claude_client and st.button("🤖 Analyze Portfolio"):
