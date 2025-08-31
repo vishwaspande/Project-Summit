@@ -38,8 +38,8 @@ warnings.filterwarnings('ignore')
 
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
-    page_title="Indian Stock Market AI Dashboard",
-    page_icon="🇮🇳",
+    page_title="Indian Stock Market - AI Dashboard",
+    #page_icon="🇮🇳",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -166,7 +166,7 @@ class IndianStockDashboard:
         """Initialize session state variables."""
         defaults = {
             'portfolio': {},
-            'watchlist': ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'],
+            'watchlist': ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY','ITC'],
             'live_data': {},
             'indices_data': {},
             'last_refresh': None
@@ -397,7 +397,7 @@ class IndianStockDashboard:
     
     def render_header(self):
         """Render dashboard header."""
-        st.markdown('<h1 class="main-header">🇮🇳 Indian Stock Market AI Dashboard</h1>', 
+        st.markdown('<h1 class="main-header">Indian Stock Market - AI Dashboard</h1>', 
                    unsafe_allow_html=True)
         
         # Market status and time
