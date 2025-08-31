@@ -114,11 +114,29 @@ class IndianStockDashboard:
             'Consumer Durables': ['ASIANPAINT', 'BERGER', 'TITAN', 'VOLTAS']
         }
         
+        # Popular Indian Mutual Funds and ETFs
+        self.mutual_funds = {
+            'Equity ETFs': ['NIFTYBEES', 'JUNIORBEES', 'BANKBEES'],
+            'Sectoral ETFs': ['ITBEES', 'PHARMABES', 'AUTOBEES', 'FMCGBEES'],
+            'International ETFs': ['HNGSNGBEES', 'NETFLTBEES'],
+            'Commodity ETFs': ['GOLDBEES', 'GOLDSHARE'],
+            'Other ETFs': ['PSUBEES', 'METALBEES', 'REALTYBEES']
+        }
+        
         # Flatten stock list
         self.all_stocks = []
         for stocks in self.indian_stocks.values():
             self.all_stocks.extend(stocks)
         self.all_stocks = sorted(list(set(self.all_stocks)))
+        
+        # Flatten mutual funds list
+        self.all_mutual_funds = []
+        for funds in self.mutual_funds.values():
+            self.all_mutual_funds.extend(funds)
+        self.all_mutual_funds = sorted(list(set(self.all_mutual_funds)))
+        
+        # Combined list for analysis
+        self.all_investments = self.all_stocks + self.all_mutual_funds
         
         # Popular stocks for quick access
         self.popular_stocks = [
@@ -518,6 +536,164 @@ class IndianStockDashboard:
                             st.markdown("### Analysis Result")
                             st.markdown(analysis)
     
+    def render_mutual_funds_analysis(self):
+        """Render mutual funds/ETF analysis section."""
+        st.header("🏦 Mutual Funds & ETFs Analysis")
+        
+        # Fund selection
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            selected_fund = st.selectbox(
+                "Select Mutual Fund/ETF for analysis:",
+                self.all_mutual_funds,
+                index=0 if self.all_mutual_funds else 0
+            )
+        
+        with col2:
+            chart_period = st.selectbox(
+                "Chart period:",
+                ["1D", "1W", "1M", "3M", "6M", "1Y"],
+                index=2
+            )
+        
+        with col3:
+            if st.button("🔄 Refresh Fund Data", type="primary"):
+                st.rerun()
+        
+        if selected_fund:
+            # Create two columns for chart and data
+            chart_col, data_col = st.columns([2, 1])
+            
+            with chart_col:
+                # Fund chart
+                fig = self.create_stock_chart(selected_fund, chart_period)
+                if fig:
+                    # Update chart title for funds
+                    fig.update_layout(title=f"{selected_fund} - {chart_period} NAV Chart (₹)")
+                    st.plotly_chart(fig, use_container_width=True)
+            
+            with data_col:
+                # Fund data
+                fund_data = self.get_stock_data([selected_fund])
+                
+                if selected_fund in fund_data:
+                    data = fund_data[selected_fund]
+                    
+                    st.subheader(f"📊 {selected_fund} Details")
+                    st.metric("Current NAV", f"₹{data['price']:.2f}")
+                    st.metric("Day Change", f"₹{data['change']:+.2f} ({data['change_pct']:+.1f}%)")
+                    st.metric("Day High", f"₹{data['high']:.2f}")
+                    st.metric("Day Low", f"₹{data['low']:.2f}")
+                    
+                    # Display fund type
+                    fund_category = self.get_fund_category(selected_fund)
+                    st.info(f"**Category:** {fund_category}")
+                    
+                    if data.get('volume'):
+                        st.metric("Volume", f"{data['volume']:,.0f} units")
+                    
+                    # Asset size approximation
+                    if data.get('market_cap'):
+                        asset_size = data['market_cap'] / 10000000
+                        st.metric("Est. AUM", f"₹{asset_size:.0f} Cr")
+            
+            # Popular funds in same category
+            st.subheader(f"📈 Other {self.get_fund_category(selected_fund)} Funds")
+            
+            category = self.get_fund_category(selected_fund)
+            similar_funds = []
+            for cat, funds in self.mutual_funds.items():
+                if cat == category:
+                    similar_funds = [f for f in funds if f != selected_fund][:3]
+                    break
+            
+            if similar_funds:
+                with st.spinner("Fetching similar funds data..."):
+                    similar_data = self.get_stock_data(similar_funds)
+                
+                if similar_data:
+                    cols = st.columns(len(similar_funds))
+                    
+                    for i, (fund, data) in enumerate(similar_data.items()):
+                        if 'error' not in data:
+                            with cols[i]:
+                                color = "normal" if data['change_pct'] >= 0 else "inverse"
+                                st.metric(
+                                    fund,
+                                    f"₹{data['price']:.2f}",
+                                    f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
+                                    delta_color=color
+                                )
+            
+            # AI Analysis for Mutual Funds
+            if self.claude_client and hasattr(self, 'agent') and self.agent:
+                st.subheader("🤖 AI Fund Analysis")
+                
+                analysis_options = [
+                    "Comprehensive Fund Analysis",
+                    "Performance vs Benchmark", 
+                    "Cost & Expense Analysis",
+                    "Risk Assessment",
+                    "SIP Recommendation",
+                    "Fund Comparison"
+                ]
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    analysis_type = st.selectbox("Analysis Type:", analysis_options)
+                
+                with col2:
+                    if st.button("🚀 Generate Fund Analysis", type="secondary"):
+                        if selected_fund in fund_data and 'error' not in fund_data[selected_fund]:
+                            with st.spinner("🤖 Analyzing fund..."):
+                                try:
+                                    # Use the agent's mutual fund analysis method
+                                    analysis = self.agent.analyze_indian_mutual_fund(selected_fund)
+                                    st.markdown("### 🤖 Fund Analysis Result")
+                                    st.markdown(analysis)
+                                except Exception as e:
+                                    st.error(f"Analysis error: {str(e)}")
+                        else:
+                            st.error("Unable to fetch fund data for analysis")
+            
+            elif self.claude_client:
+                st.subheader("🤖 Basic AI Fund Analysis")
+                
+                if st.button("Generate Basic Fund Analysis", type="secondary"):
+                    if selected_fund in fund_data:
+                        data = fund_data[selected_fund]
+                        
+                        prompt = f"""
+                        Analyze this Indian ETF/Mutual Fund: {selected_fund}
+                        
+                        Current NAV: ₹{data['price']:.2f}
+                        Day Change: {data['change_pct']:+.1f}%
+                        Category: {self.get_fund_category(selected_fund)}
+                        
+                        Provide:
+                        1. Fund overview and investment objective
+                        2. Performance analysis
+                        3. Risk factors
+                        4. Suitability for different investors
+                        5. Investment recommendation
+                        
+                        Keep response concise and actionable for Indian investors.
+                        """
+                        
+                        with st.spinner("🤖 Analyzing..."):
+                            analysis = self.call_claude_analysis(prompt)
+                            st.markdown("### Analysis Result")
+                            st.markdown(analysis)
+    
+    def get_fund_category(self, fund_symbol: str) -> str:
+        """Get category for a mutual fund symbol."""
+        for category, funds in self.mutual_funds.items():
+            if fund_symbol in funds:
+                return category
+        return 'Other Funds'
+    
     def render_portfolio(self):
         """Render portfolio section."""
         st.header("💼 Portfolio Management")
@@ -528,21 +704,35 @@ class IndianStockDashboard:
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            new_symbol = st.selectbox("Stock:", self.popular_stocks)
+            investment_type = st.radio("Investment Type:", ["Stocks", "Mutual Funds/ETFs"], horizontal=True)
+            if investment_type == "Stocks":
+                new_symbol = st.selectbox("Stock:", self.popular_stocks)
+            else:
+                new_symbol = st.selectbox("Mutual Fund/ETF:", self.all_mutual_funds)
         
         with col2:
-            new_quantity = st.number_input("Quantity:", min_value=1, value=100)
+            if investment_type == "Stocks":
+                new_quantity = st.number_input("Shares:", min_value=1, value=100)
+            else:
+                new_quantity = st.number_input("Units:", min_value=1, value=100)
         
         with col3:
-            new_price = st.number_input("Avg Price (₹):", min_value=0.01, value=100.0)
+            if investment_type == "Stocks":
+                new_price = st.number_input("Avg Price (₹):", min_value=0.01, value=100.0)
+            else:
+                new_price = st.number_input("Avg NAV (₹):", min_value=0.01, value=50.0)
         
         with col4:
+            st.write("")  # Empty space for alignment
+            st.write("")  # Empty space for alignment
             if st.button("Add Position", type="primary"):
                 st.session_state.portfolio[new_symbol] = {
                     'qty': new_quantity,
-                    'avg_price': new_price
+                    'avg_price': new_price,
+                    'type': investment_type
                 }
-                st.success(f"Added {new_quantity} shares of {new_symbol}")
+                unit_type = "shares" if investment_type == "Stocks" else "units"
+                st.success(f"Added {new_quantity} {unit_type} of {new_symbol}")
                 st.rerun()
         
         # Display portfolio
@@ -574,9 +764,9 @@ class IndianStockDashboard:
                         current_price = position['avg_price']  # Fallback to avg price
                         price_source = "Fallback"
                     
-                    # Calculate values
-                    qty = float(position['qty'])
-                    avg_price = float(position['avg_price'])
+                    # Calculate values with proper error handling
+                    qty = float(position['qty']) if position['qty'] else 0
+                    avg_price = float(position['avg_price']) if position['avg_price'] else 0
                     
                     invested = qty * avg_price
                     current_value = qty * current_price
@@ -1052,9 +1242,10 @@ class IndianStockDashboard:
             self.render_header()
             
             # Main tabs
-            tab1, tab2, tab3, tab4 = st.tabs([
+            tab1, tab2, tab3, tab4, tab5 = st.tabs([
                 "📊 Market Overview",
                 "📈 Stock Analysis", 
+                "🏦 Mutual Funds/ETFs",
                 "💼 Portfolio",
                 "🤖 AI Assistant"
             ])
@@ -1066,9 +1257,12 @@ class IndianStockDashboard:
                 self.render_stock_analysis()
             
             with tab3:
-                self.render_portfolio()
+                self.render_mutual_funds_analysis()
             
             with tab4:
+                self.render_portfolio()
+            
+            with tab5:
                 self.render_market_chat()
             
         except Exception as e:

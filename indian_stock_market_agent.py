@@ -151,6 +151,34 @@ class IndianStockMarketAgent:
             'ACC': 'ACC.NS', 'AMBUJACEMENT': 'AMBUJACEMENT.NS'
         }
         
+        # Popular Indian Mutual Funds ETFs
+        self.popular_mutual_funds = {
+            # Equity ETFs
+            'NIFTYBEES': 'NIFTYBEES.NS',    # Nifty 50 ETF
+            'JUNIORBEES': 'JUNIORBEES.NS',  # Nifty Next 50 ETF
+            'BANKBEES': 'BANKBEES.NS',      # Nifty Bank ETF
+            'ITBEES': 'ITBEES.NS',          # Nifty IT ETF
+            'PHARMABES': 'PHARMABES.NS',    # Nifty Pharma ETF
+            'AUTOBEES': 'AUTOBEES.NS',      # Nifty Auto ETF
+            'FMCGBEES': 'FMCGBEES.NS',      # Nifty FMCG ETF
+            'PSUBEES': 'PSUBEES.NS',        # Nifty PSU Bank ETF
+            'METALBEES': 'METALBEES.NS',    # Nifty Metal ETF
+            'REALTYBEES': 'REALTYBEES.NS',  # Nifty Realty ETF
+            
+            # Sectoral ETFs
+            'INFRABEES': 'INFRABEES.NS',    # Nifty Infrastructure ETF
+            'ENERGYBEES': 'ENERGYBEES.NS', # Nifty Energy ETF
+            'CONSUMRBES': 'CONSUMRBES.NS', # Nifty Consumption ETF
+            
+            # International ETFs
+            'HNGSNGBEES': 'HNGSNGBEES.NS', # Hang Seng ETF
+            'NETFLTBEES': 'NETFLTBEES.NS', # NASDAQ 100 ETF
+            
+            # Gold ETFs
+            'GOLDBEES': 'GOLDBEES.NS',      # Gold ETF
+            'GOLDSHARE': 'GOLDSHARE.NS',    # Gold Shares ETF
+        }
+        
         # Enhanced Indian sectors mapping
         self.indian_sectors = {
             'Large Cap IT': ['TCS', 'INFY', 'WIPRO', 'TECHM', 'HCLTECH'],
@@ -168,7 +196,12 @@ class IndianStockMarketAgent:
             'Infrastructure': ['LT', 'ADANIPORTS', 'POWERGRID', 'NTPC'],
             'Telecom': ['BHARTIARTL', 'IDEA'],
             'Cement': ['ULTRACEMCO', 'SHREECEM', 'ACC', 'AMBUJACEMENT'],
-            'Paints': ['ASIANPAINT', 'BERGER', 'KANSAINER']
+            'Paints': ['ASIANPAINT', 'BERGER', 'KANSAINER'],
+            # Mutual Fund Categories
+            'Equity ETFs': ['NIFTYBEES', 'JUNIORBEES', 'BANKBEES'],
+            'Sectoral ETFs': ['ITBEES', 'PHARMABES', 'AUTOBEES', 'FMCGBEES'],
+            'International ETFs': ['HNGSNGBEES', 'NETFLTBEES'],
+            'Commodity ETFs': ['GOLDBEES', 'GOLDSHARE']
         }
         
         # Market timing
@@ -200,13 +233,15 @@ class IndianStockMarketAgent:
         return False
     
     def get_indian_stock_data(self, symbols: List[str], period: str = "1d") -> Dict:
-        """Fetch comprehensive Indian stock data."""
+        """Fetch comprehensive Indian stock data including mutual funds."""
         data = {}
         
         for symbol in symbols:
             try:
-                # Convert to NSE symbol if needed
-                yf_symbol = self.popular_indian_stocks.get(symbol, f"{symbol}.NS")
+                # Convert to NSE symbol if needed - check both stocks and mutual funds
+                yf_symbol = (self.popular_indian_stocks.get(symbol) or 
+                           self.popular_mutual_funds.get(symbol) or 
+                           f"{symbol}.NS")
                 
                 ticker = yf.Ticker(yf_symbol)
                 
@@ -258,8 +293,9 @@ class IndianStockMarketAgent:
                     sma_50 = current_price
                     price_vs_sma50 = 0
                 
-                # Sector
+                # Sector and type identification
                 sector = self.get_indian_sector(symbol)
+                is_mutual_fund = symbol in self.popular_mutual_funds
                 
                 data[symbol] = {
                     # Basic price data
@@ -295,6 +331,8 @@ class IndianStockMarketAgent:
                     'sector': sector,
                     'industry': info.get('industry'),
                     'yf_symbol': yf_symbol,
+                    'is_mutual_fund': is_mutual_fund,
+                    'asset_type': 'ETF/Mutual Fund' if is_mutual_fund else 'Stock',
                     'timestamp': datetime.now(self.indian_timezone),
                     'business_summary': info.get('longBusinessSummary', '')[:500]  # First 500 chars
                 }
@@ -478,6 +516,65 @@ class IndianStockMarketAgent:
            - News/events to monitor
         
         Focus on actionable insights for Indian retail investors.
+        """
+        
+        return self._call_claude_indian(prompt, max_tokens=3500)
+    
+    def analyze_indian_mutual_fund(self, symbol: str) -> str:
+        """Comprehensive analysis of Indian mutual fund/ETF."""
+        logger.info(f"🔍 Analyzing mutual fund {symbol}...")
+        
+        fund_data = self.get_indian_stock_data([symbol])
+        
+        if symbol not in fund_data or 'error' in fund_data[symbol]:
+            return f"❌ Could not fetch data for {symbol}. Please check the symbol or try again later."
+        
+        data = fund_data[symbol]
+        
+        prompt = f"""
+        Analyze this Indian ETF/Mutual Fund for investment decisions:
+        
+        FUND: {symbol} ({data['sector']} category)
+        Current NAV: ₹{data['price']:.2f}
+        Day Change: ₹{data['day_change']:.2f} ({data['day_change_pct']:+.1f}%)
+        Day Range: ₹{data['low']:.2f} - ₹{data['high']:.2f}
+        Volume: {data['volume']:,} units
+        Expense Ratio: {data.get('expense_ratio', 'N/A')}
+        AUM: ₹{data['market_cap_cr']:.0f} crores (approx.)
+        
+        Provide analysis specifically for Indian investors:
+        
+        1. **FUND ASSESSMENT**
+           - Fund performance vs benchmark
+           - Tracking error analysis
+           - Liquidity and trading volume
+           
+        2. **UNDERLYING PORTFOLIO ANALYSIS**
+           - Top holdings and concentration
+           - Sector allocation efficiency
+           - Risk-return profile
+        
+        3. **COST ANALYSIS**
+           - Expense ratio comparison with peers
+           - Tax efficiency for Indian investors
+           - Entry/exit load considerations
+        
+        4. **INVESTMENT RECOMMENDATION**
+           - BUY/HOLD/SELL with rationale
+           - Suitable investment horizon
+           - Allocation percentage in portfolio
+        
+        5. **RISK FACTORS**
+           - Fund-specific risks
+           - Market risks and volatility
+           - Liquidity and redemption risks
+        
+        6. **ALTERNATIVES & COMPARISONS**
+           - Similar funds in the category
+           - Direct stock investment vs ETF
+           - SIP vs lump-sum strategy
+        
+        Focus on practical advice for Indian retail and HNI investors.
         """
         
         return self._call_claude_indian(prompt, max_tokens=3500)
