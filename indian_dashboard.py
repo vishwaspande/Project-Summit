@@ -11,9 +11,10 @@ Features for Indian Markets:
 - Portfolio management with Indian context
 - AI-powered stock analysis
 - Real-time alerts and monitoring
+- Correct mutual fund data from AMFI
 
 Setup:
-pip install streamlit plotly yfinance anthropic pandas numpy pytz
+pip install streamlit plotly yfinance anthropic pandas numpy pytz requests
 export ANTHROPIC_API_KEY="your-key-here"
 
 Run:
@@ -34,12 +35,12 @@ import os
 import numpy as np
 from typing import Dict, List
 import warnings
+import requests
 warnings.filterwarnings('ignore')
 
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
     page_title="Indian Stock Market - AI Dashboard",
-    #page_icon="🇮🇳",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -91,6 +92,31 @@ st.markdown("""
         color: #f44336;
         font-weight: bold;
     }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .stMetric {
+            background-color: #f0f2f6;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+        }
+        
+        .stSelectbox > div > div {
+            font-size: 16px;
+        }
+        
+        .stButton > button {
+            width: 100%;
+            height: 50px;
+            font-size: 18px;
+        }
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -114,16 +140,26 @@ class IndianStockDashboard:
             'Consumer Durables': ['ASIANPAINT', 'BERGER', 'TITAN', 'VOLTAS']
         }
         
-        # Specific Mutual Funds and ETFs
+        # Mutual Funds with correct names and ETFs with NSE symbols
         self.mutual_funds = {
-            # Mutual Funds
-            'Flexi Cap Funds': ['PPFAS_FLEXICAP_DIRECT'],
-            'Small Cap Funds': ['HDFC_SMALLCAP_DIRECT'], 
-            'Index Funds': ['HDFC_NIFTY_NEXT50_DIRECT', 'HDFC_NIFTY50_DIRECT'],
-            'Sectoral Funds': ['NIPPON_PHARMA_DIRECT', 'ICICI_ENERGY_DIRECT'],
+            # Mutual Funds (require API calls to mfapi.in)
+            'Flexi Cap Funds': ['Parag Parikh Flexi Cap Fund - Direct Plan'],
+            'Small Cap Funds': ['HDFC Small Cap Fund - Direct Plan - Growth'], 
+            'Index Funds': ['HDFC Nifty Next50 Index Fund Direct Growth', 'HDFC Nifty 50 Index Fund - Direct Plan'],
+            'Sectoral Funds': ['Nippon India Pharma Fund Direct Growth Plan', 'ICICI Prudential Energy Opportunity Fund - Direct Plan'],
             
-            # ETFs
-            'Commodity ETFs': ['HDFC_GOLD_ETF', 'HDFC_SILVER_ETF']
+            # ETFs (can use yfinance with .NS symbols)
+            'Commodity ETFs': ['HDFCGOLDETF.NS', 'HDFCSILVERETF.NS']
+        }
+        
+        # AMFI scheme codes for mutual funds (correct mappings)
+        self.scheme_codes = {
+            'Parag Parikh Flexi Cap Fund - Direct Plan': '122639',
+            'HDFC Small Cap Fund - Direct Plan - Growth': '130503',
+            'HDFC Nifty Next50 Index Fund Direct Growth': '149288',
+            'HDFC Nifty 50 Index Fund - Direct Plan': '119063',
+            'Nippon India Pharma Fund Direct Growth Plan': '118759',
+            'ICICI Prudential Energy Opportunity Fund - Direct Plan': '152728'
         }
         
         # Flatten stock list
@@ -213,42 +249,381 @@ class IndianStockDashboard:
         
         return market_open <= current_time <= market_close
     
+    def get_fund_nav_from_mfapi(self, fund_name: str) -> dict:
+        """Get mutual fund NAV from MFApi using scheme code."""
+        if fund_name not in self.scheme_codes:
+            return {'error': f'Scheme code not found for {fund_name}'}
+        
+        scheme_code = self.scheme_codes[fund_name]
+        
+        try:
+            url = f"https://api.mfapi.in/mf/{scheme_code}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                api_data = response.json()
+                
+                if api_data and 'data' in api_data and len(api_data['data']) > 0:
+                    latest = api_data['data'][0]  # Most recent NAV
+                    previous = api_data['data'][1] if len(api_data['data']) > 1 else latest
+                    
+                    current_nav = float(latest['nav'])
+                    prev_nav = float(previous['nav']) if previous['nav'] != latest['nav'] else current_nav
+                    
+                    change = current_nav - prev_nav
+                    change_pct = (change / prev_nav * 100) if prev_nav > 0 else 0
+                    
+                    return {
+                        'scheme_name': api_data['meta']['scheme_name'],
+                        'scheme_code': api_data['meta']['scheme_code'],
+                        'fund_house': api_data['meta']['fund_house'],
+                        'scheme_type': api_data['meta']['scheme_type'],
+                        'scheme_category': api_data['meta']['scheme_category'],
+                        'nav': current_nav,
+                        'nav_date': latest['date'],
+                        'prev_nav': prev_nav,
+                        'change': change,
+                        'change_pct': change_pct,
+                        'is_mutual_fund': True,
+                        'data_source': 'AMFI via MFApi'
+                    }
+            
+            return {'error': f'API returned status {response.status_code}'}
+            
+        except Exception as e:
+            return {'error': f'Error fetching {fund_name}: {str(e)}'}
+
+    def get_fund_historical_data(self, scheme_code: str, days: int = 365) -> dict:
+        """Get historical NAV data for performance analysis."""
+        try:
+            url = f"https://api.mfapi.in/mf/{scheme_code}"
+            response = requests.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data and 'data' in data and len(data['data']) > 0:
+                    # Get historical data
+                    historical = data['data'][:days]  # Last 'days' worth of data
+                    
+                    if len(historical) == 0:
+                        return {'error': 'No historical data available'}
+                    
+                    # Convert to proper format
+                    nav_data = []
+                    for record in historical:
+                        try:
+                            nav_data.append({
+                                'date': record['date'],
+                                'nav': float(record['nav'])
+                            })
+                        except (ValueError, KeyError):
+                            continue
+                    
+                    if len(nav_data) < 2:
+                        return {'error': 'Insufficient historical data'}
+                    
+                    # Calculate returns for different periods
+                    current_nav = nav_data[0]['nav']
+                    
+                    returns = {}
+                    period_mapping = {
+                        '1M': 30,
+                        '3M': 90, 
+                        '6M': 180,
+                        '1Y': 365,
+                        '2Y': 730,
+                        '3Y': 1095,
+                        '5Y': 1825
+                    }
+                    
+                    for period, days_back in period_mapping.items():
+                        if len(nav_data) > days_back:
+                            start_nav = nav_data[min(days_back, len(nav_data) - 1)]['nav']
+                            if period in ['2Y', '3Y', '5Y']:
+                                years = int(period[0])
+                                cagr = ((current_nav / start_nav) ** (1/years) - 1) * 100
+                                returns[period] = cagr
+                            else:
+                                absolute_return = ((current_nav - start_nav) / start_nav) * 100
+                                returns[period] = absolute_return
+                    
+                    return {
+                        'scheme_name': data['meta']['scheme_name'],
+                        'returns': returns,
+                        'current_nav': current_nav,
+                        'historical_data': nav_data[:90]  # Last 3 months for charting
+                    }
+            
+            return {'error': 'Could not fetch historical data'}
+            
+        except Exception as e:
+            return {'error': f'Error fetching historical data: {str(e)}'}
+
+    def get_benchmark_returns(self, fund_category: str) -> dict:
+        """Get benchmark returns based on fund category."""
+        # Define benchmarks for different categories
+        benchmark_mapping = {
+            'Flexi Cap Funds': '^NSEI',  # Nifty 50
+            'Small Cap Funds': '^NSEBANK',  # Nifty Bank (proxy for small cap)
+            'Index Funds': '^NSEI',  # Nifty 50
+            'Sectoral Funds': '^NSEI',  # Nifty 50
+            'Commodity ETFs': 'GC=F'  # Gold
+        }
+        
+        benchmark_symbol = benchmark_mapping.get(fund_category, '^NSEI')
+        
+        try:
+            ticker = yf.Ticker(benchmark_symbol)
+            hist = ticker.history(period="5y")  # Get 5 years of data
+            
+            if hist.empty:
+                return {'error': 'No benchmark data available'}
+            
+            # Calculate returns for different periods
+            current_price = hist['Close'].iloc[-1]
+            
+            returns = {}
+            period_mapping = {
+                '1M': 30,
+                '3M': 90,
+                '6M': 180, 
+                '1Y': 252,
+                '2Y': 504,
+                '3Y': 756,
+                '5Y': 1260
+            }
+            
+            for period, days_back in period_mapping.items():
+                if len(hist) > days_back:
+                    start_price = hist['Close'].iloc[-min(days_back, len(hist))]
+                    if period in ['2Y', '3Y', '5Y']:
+                        years = int(period[0])
+                        cagr = ((current_price / start_price) ** (1/years) - 1) * 100
+                        returns[period] = cagr
+                    else:
+                        absolute_return = ((current_price - start_price) / start_price) * 100
+                        returns[period] = absolute_return
+            
+            benchmark_name = {
+                '^NSEI': 'Nifty 50',
+                '^NSEBANK': 'Nifty Bank',  
+                'GC=F': 'Gold'
+            }.get(benchmark_symbol, 'Market')
+            
+            return {
+                'benchmark_name': benchmark_name,
+                'returns': returns
+            }
+            
+        except Exception as e:
+            return {'error': f'Error fetching benchmark data: {str(e)}'}
+
+    def create_performance_comparison_chart(self, fund_returns: dict, benchmark_returns: dict, fund_name: str) -> go.Figure:
+        """Create performance comparison chart."""
+        if not fund_returns or not benchmark_returns:
+            return None
+        
+        periods = ['1M', '3M', '6M', '1Y', '2Y', '3Y', '5Y']
+        fund_values = []
+        benchmark_values = []
+        valid_periods = []
+        
+        for period in periods:
+            if period in fund_returns and period in benchmark_returns:
+                fund_values.append(fund_returns[period])
+                benchmark_values.append(benchmark_returns[period])
+                valid_periods.append(period)
+        
+        if not valid_periods:
+            return None
+        
+        fig = go.Figure()
+        
+        # Add fund performance
+        fig.add_trace(go.Bar(
+            name=fund_name,
+            x=valid_periods,
+            y=fund_values,
+            marker_color='#1f77b4',
+            text=[f'{val:.1f}%' for val in fund_values],
+            textposition='outside'
+        ))
+        
+        # Add benchmark performance
+        fig.add_trace(go.Bar(
+            name=benchmark_returns.get('benchmark_name', 'Benchmark'),
+            x=valid_periods,
+            y=benchmark_values,
+            marker_color='#ff7f0e',
+            text=[f'{val:.1f}%' for val in benchmark_values],
+            textposition='outside'
+        ))
+        
+        fig.update_layout(
+            title=f'{fund_name} vs Benchmark Returns (%)',
+            xaxis_title='Time Period',
+            yaxis_title='Returns (%)',
+            barmode='group',
+            height=400,
+            template='plotly_white',
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+        
+        return fig
+        """Get mutual fund NAV from MFApi using scheme code."""
+        if fund_name not in self.scheme_codes:
+            return {'error': f'Scheme code not found for {fund_name}'}
+        
+        scheme_code = self.scheme_codes[fund_name]
+        
+        try:
+            url = f"https://api.mfapi.in/mf/{scheme_code}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                api_data = response.json()
+                
+                if api_data and 'data' in api_data and len(api_data['data']) > 0:
+                    latest = api_data['data'][0]  # Most recent NAV
+                    previous = api_data['data'][1] if len(api_data['data']) > 1 else latest
+                    
+                    current_nav = float(latest['nav'])
+                    prev_nav = float(previous['nav']) if previous['nav'] != latest['nav'] else current_nav
+                    
+                    change = current_nav - prev_nav
+                    change_pct = (change / prev_nav * 100) if prev_nav > 0 else 0
+                    
+                    return {
+                        'scheme_name': api_data['meta']['scheme_name'],
+                        'scheme_code': api_data['meta']['scheme_code'],
+                        'fund_house': api_data['meta']['fund_house'],
+                        'scheme_type': api_data['meta']['scheme_type'],
+                        'scheme_category': api_data['meta']['scheme_category'],
+                        'nav': current_nav,
+                        'nav_date': latest['date'],
+                        'prev_nav': prev_nav,
+                        'change': change,
+                        'change_pct': change_pct,
+                        'is_mutual_fund': True,
+                        'data_source': 'AMFI via MFApi'
+                    }
+            
+            return {'error': f'API returned status {response.status_code}'}
+            
+        except Exception as e:
+            return {'error': f'Error fetching {fund_name}: {str(e)}'}
+
     def get_stock_data(self, symbols: List[str]) -> Dict:
-        """Fetch stock data using yfinance."""
+        """Fetch stock AND mutual fund data using appropriate sources."""
         data = {}
         
         for symbol in symbols:
             try:
-                ticker = yf.Ticker(f"{symbol}.NS")
-                
-                if self.is_market_open():
-                    hist = ticker.history(period="1d", interval="5m")
-                else:
-                    hist = ticker.history(period="5d")
-                
-                info = ticker.info
-                
-                if not hist.empty:
-                    current_price = hist['Close'].iloc[-1]
-                    prev_close = info.get('previousClose', hist['Close'].iloc[0])
-                    change = current_price - prev_close
-                    change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                # Check if it's a mutual fund (in scheme_codes)
+                if hasattr(self, 'scheme_codes') and symbol in self.scheme_codes:
+                    # It's a mutual fund - use MFApi
+                    fund_data = self.get_fund_nav_from_mfapi(symbol)
                     
-                    data[symbol] = {
-                        'price': current_price,
-                        'prev_close': prev_close,
-                        'change': change,
-                        'change_pct': change_pct,
-                        'high': hist['High'].max(),
-                        'low': hist['Low'].min(),
-                        'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
-                        'market_cap': info.get('marketCap', 0),
-                        'pe_ratio': info.get('trailingPE'),
-                        'sector': self.get_sector(symbol),
-                        'timestamp': datetime.now()
-                    }
+                    if 'error' not in fund_data:
+                        data[symbol] = {
+                            'price': fund_data['nav'],
+                            'prev_close': fund_data['prev_nav'], 
+                            'change': fund_data['change'],
+                            'change_pct': fund_data['change_pct'],
+                            'high': fund_data['nav'],  # NAV doesn't have intraday high/low
+                            'low': fund_data['nav'],
+                            'volume': 0,  # MFs don't have volume
+                            'market_cap': 0,
+                            'pe_ratio': None,
+                            'sector': fund_data['scheme_category'],
+                            'timestamp': datetime.now(),
+                            'scheme_name': fund_data['scheme_name'],
+                            'scheme_code': fund_data['scheme_code'],
+                            'fund_house': fund_data['fund_house'],
+                            'nav_date': fund_data['nav_date'],
+                            'is_mutual_fund': True,
+                            'data_source': fund_data['data_source']
+                        }
+                    else:
+                        data[symbol] = fund_data  # Contains error info
+                        
+                elif symbol.endswith('.NS'):
+                    # It's an ETF - use yfinance directly
+                    ticker = yf.Ticker(symbol)
+                    
+                    if self.is_market_open():
+                        hist = ticker.history(period="1d", interval="5m")
+                    else:
+                        hist = ticker.history(period="5d")
+                    
+                    info = ticker.info
+                    
+                    if not hist.empty:
+                        current_price = hist['Close'].iloc[-1]
+                        prev_close = info.get('previousClose', hist['Close'].iloc[0])
+                        change = current_price - prev_close
+                        change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                        
+                        data[symbol] = {
+                            'price': current_price,
+                            'prev_close': prev_close,
+                            'change': change,
+                            'change_pct': change_pct,
+                            'high': hist['High'].max(),
+                            'low': hist['Low'].min(),
+                            'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
+                            'market_cap': info.get('marketCap', 0),
+                            'pe_ratio': info.get('trailingPE'),
+                            'sector': 'ETF',
+                            'timestamp': datetime.now(),
+                            'is_mutual_fund': False
+                        }
+                    else:
+                        data[symbol] = {'error': f'No data available for ETF {symbol}'}
+                        
+                else:
+                    # It's a stock - use yfinance
+                    ticker = yf.Ticker(f"{symbol}.NS")
+                    
+                    if self.is_market_open():
+                        hist = ticker.history(period="1d", interval="5m")
+                    else:
+                        hist = ticker.history(period="5d")
+                    
+                    info = ticker.info
+                    
+                    if not hist.empty:
+                        current_price = hist['Close'].iloc[-1]
+                        prev_close = info.get('previousClose', hist['Close'].iloc[0])
+                        change = current_price - prev_close
+                        change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                        
+                        data[symbol] = {
+                            'price': current_price,
+                            'prev_close': prev_close,
+                            'change': change,
+                            'change_pct': change_pct,
+                            'high': hist['High'].max(),
+                            'low': hist['Low'].min(),
+                            'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
+                            'market_cap': info.get('marketCap', 0),
+                            'pe_ratio': info.get('trailingPE'),
+                            'sector': self.get_sector(symbol),
+                            'timestamp': datetime.now(),
+                            'is_mutual_fund': False
+                        }
+                    else:
+                        data[symbol] = {'error': f'No data available for stock {symbol}'}
+                        
             except Exception as e:
-                st.error(f"Error fetching {symbol}: {e}")
+                data[symbol] = {'error': f"Error fetching {symbol}: {str(e)}"}
         
         return data
     
@@ -317,9 +692,18 @@ class IndianStockDashboard:
         return 83.0
     
     def create_stock_chart(self, symbol: str, period: str = "1M") -> go.Figure:
-        """Create stock price chart."""
+        """Create stock price chart for stocks and ETFs."""
         try:
-            ticker = yf.Ticker(f"{symbol}.NS")
+            # Handle mutual funds separately (no charts available)
+            if hasattr(self, 'scheme_codes') and symbol in self.scheme_codes:
+                st.info(f"📊 Chart not available for mutual fund: {symbol}. Showing NAV data only.")
+                return None
+            
+            # For ETFs and stocks
+            if symbol.endswith('.NS'):
+                ticker = yf.Ticker(symbol)
+            else:
+                ticker = yf.Ticker(f"{symbol}.NS")
             
             period_map = {
                 "1D": ("1d", "5m"),
@@ -350,8 +734,14 @@ class IndianStockDashboard:
                 decreasing_line_color='#FF4444'
             ))
             
+            # Update title based on type
+            if symbol.endswith('.NS'):
+                title = f"{symbol} - {period} Chart (₹)"
+            else:
+                title = f"{symbol} - {period} Chart (₹)"
+            
             fig.update_layout(
-                title=f"{symbol} - {period} Chart (₹)",
+                title=title,
                 yaxis_title="Price (₹)",
                 template="plotly_white",
                 height=500,
@@ -452,14 +842,15 @@ class IndianStockDashboard:
                 cols = st.columns(min(len(watchlist_data), 4))
                 
                 for i, (symbol, data) in enumerate(watchlist_data.items()):
-                    with cols[i % 4]:
-                        color = "normal" if data['change_pct'] >= 0 else "inverse"
-                        st.metric(
-                            symbol,
-                            f"₹{data['price']:.2f}",
-                            f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
-                            delta_color=color
-                        )
+                    if 'error' not in data:
+                        with cols[i % 4]:
+                            color = "normal" if data['change_pct'] >= 0 else "inverse"
+                            st.metric(
+                                symbol,
+                                f"₹{data['price']:.2f}",
+                                f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
+                                delta_color=color
+                            )
     
     def render_stock_analysis(self):
         """Render stock analysis section."""
@@ -502,7 +893,7 @@ class IndianStockDashboard:
                 # Stock data
                 stock_data = self.get_stock_data([selected_stock])
                 
-                if selected_stock in stock_data:
+                if selected_stock in stock_data and 'error' not in stock_data[selected_stock]:
                     data = stock_data[selected_stock]
                     
                     st.subheader(f"📊 {selected_stock} Details")
@@ -517,13 +908,16 @@ class IndianStockDashboard:
                     
                     if data.get('pe_ratio'):
                         st.metric("P/E Ratio", f"{data['pe_ratio']:.1f}")
+                else:
+                    st.error(f"Could not fetch data for {selected_stock}")
             
             # AI Analysis
             if self.claude_client:
                 st.subheader("🤖 AI Analysis")
                 
                 if st.button("Generate AI Analysis", type="secondary"):
-                    if selected_stock in stock_data:
+                    stock_data = self.get_stock_data([selected_stock])
+                    if selected_stock in stock_data and 'error' not in stock_data[selected_stock]:
                         data = stock_data[selected_stock]
                         
                         prompt = f"""
@@ -581,234 +975,100 @@ class IndianStockDashboard:
             chart_col, data_col = st.columns([2, 1])
             
             with chart_col:
-                # Fund chart
+                # Fund chart (only for ETFs)
                 fig = self.create_stock_chart(selected_fund, chart_period)
                 if fig:
-                    # Update chart title for funds
-                    fig.update_layout(title=f"{selected_fund} - {chart_period} NAV Chart (₹)")
                     st.plotly_chart(fig, use_container_width=True)
             
             with data_col:
                 # Fund data
                 fund_data = self.get_stock_data([selected_fund])
                 
-                if selected_fund in fund_data:
+                if selected_fund in fund_data and 'error' not in fund_data[selected_fund]:
                     data = fund_data[selected_fund]
                     
-                    # Display fund name if available
-                    display_name = data.get('scheme_name', selected_fund.replace('_', ' '))
-                    st.subheader(f"📊 {display_name}")
-                    
-                    # Show current NAV
+                    # Display fund name
                     if data.get('is_mutual_fund'):
+                        display_name = data.get('scheme_name', selected_fund)
+                        st.subheader(f"📊 {display_name}")
                         st.metric("Current NAV", f"₹{data['price']:.2f}")
-                        if data.get('nav_date'):
-                            st.caption(f"NAV Date: {data['nav_date']}")
-                        if data.get('data_source'):
-                            st.caption(f"Data Source: {data['data_source']}")
+                        st.caption(f"NAV Date: {data.get('nav_date', 'N/A')}")
+                        st.caption(f"Fund House: {data.get('fund_house', 'N/A')}")
+                        st.caption(f"AMFI Code: {data.get('scheme_code', 'N/A')}")
                     else:
+                        st.subheader(f"📊 {selected_fund}")
                         st.metric("Current Price", f"₹{data['price']:.2f}")
-                    
-                    st.metric("Day Change", f"₹{data['change']:+.2f} ({data['change_pct']:+.1f}%)")
-                    
-                    if not data.get('is_mutual_fund'):
                         st.metric("Day High", f"₹{data['high']:.2f}")
                         st.metric("Day Low", f"₹{data['low']:.2f}")
                     
-                    # Display fund type
+                    st.metric("Day Change", f"₹{data['change']:+.2f} ({data['change_pct']:+.1f}%)")
+                    
+                    # Display fund category
                     fund_category = self.get_fund_category(selected_fund)
                     st.info(f"**Category:** {fund_category}")
                     
-                    # Show additional info for mutual funds
-                    if data.get('is_mutual_fund'):
-                        if data.get('scheme_code'):
-                            st.caption(f"AMFI Code: {data['scheme_code']}")
-                        if data.get('notes'):
-                            st.warning(data['notes'])
-                    else:
-                        if data.get('volume'):
-                            st.metric("Volume", f"{data['volume']:,.0f} units")
-                        
-                        # Asset size approximation
-                        if data.get('market_cap'):
-                            asset_size = data['market_cap'] / 10000000
-                            st.metric("Est. AUM", f"₹{asset_size:.0f} Cr")
-            
-            # Fund Performance Analysis
-            st.subheader("📊 Fund Performance Analysis")
-            
-            # Get performance data
-            if hasattr(self, 'agent') and self.agent and hasattr(self.agent, 'calculate_fund_performance'):
-                with st.spinner("Calculating fund performance..."):
-                    try:
-                        performance_data = self.agent.calculate_fund_performance(selected_fund)
-                        
-                        if 'error' not in performance_data:
-                            # Display performance table
-                            st.subheader("🎯 Returns Comparison")
-                            
-                            periods = ['1Y', '2Y', '3Y', '5Y', '10Y', 'inception']
-                            period_labels = ['1 Year', '2 Years', '3 Years', '5 Years', '10 Years', 'Since Inception']
-                            
-                            # Create performance comparison table
-                            perf_data = []
-                            for i, period in enumerate(periods):
-                                fund_return = performance_data['returns'].get(period)
-                                benchmark_return = performance_data['benchmark_returns'].get(period)
-                                alpha = performance_data['alpha'].get(period)
-                                
-                                if fund_return is not None:
-                                    row = {
-                                        'Period': period_labels[i],
-                                        'Fund Return (%)': f"{fund_return:.1f}%" if fund_return else "N/A",
-                                        'Benchmark (%)': f"{benchmark_return:.1f}%" if benchmark_return else "N/A",
-                                        'Alpha (%)': f"{alpha:+.1f}%" if alpha else "N/A"
-                                    }
-                                    perf_data.append(row)
-                            
-                            if perf_data:
-                                perf_df = pd.DataFrame(perf_data)
-                                st.dataframe(perf_df, use_container_width=True, hide_index=True)
-                                
-                                # Performance visualization
-                                st.subheader("📈 Performance Chart")
-                                
-                                # Create bar chart comparing fund vs benchmark
-                                chart_periods = []
-                                fund_returns = []
-                                benchmark_returns = []
-                                
-                                for period in periods:
-                                    fund_ret = performance_data['returns'].get(period)
-                                    bench_ret = performance_data['benchmark_returns'].get(period)
-                                    
-                                    if fund_ret is not None and bench_ret is not None:
-                                        chart_periods.append(period)
-                                        fund_returns.append(fund_ret)
-                                        benchmark_returns.append(bench_ret)
-                                
-                                if chart_periods:
-                                    chart_df = pd.DataFrame({
-                                        'Period': chart_periods,
-                                        'Fund': fund_returns,
-                                        'Benchmark': benchmark_returns
-                                    })
-                                    
-                                    fig = px.bar(
-                                        chart_df.melt(id_vars='Period', var_name='Type', value_name='Return'),
-                                        x='Period', 
-                                        y='Return', 
-                                        color='Type',
-                                        title=f"{selected_fund.replace('_', ' ')} vs Benchmark Returns (%)",
-                                        barmode='group'
-                                    )
-                                    fig.update_layout(height=400)
-                                    st.plotly_chart(fig, use_container_width=True)
-                                
-                                # Performance insights
-                                if performance_data.get('note'):
-                                    st.info(f"ℹ️ {performance_data['note']}")
-                                
-                                # Inception date
-                                if performance_data.get('inception_date'):
-                                    st.caption(f"Fund Inception Date: {performance_data['inception_date']}")
-                        else:
-                            st.error(f"Could not calculate performance: {performance_data.get('error', 'Unknown error')}")
-                    
-                    except Exception as e:
-                        st.error(f"Performance calculation failed: {str(e)}")
-            
-            # Similar funds in category
-            st.subheader(f"📈 Other {self.get_fund_category(selected_fund)} Funds")
-            
-            category = self.get_fund_category(selected_fund)
-            similar_funds = []
-            for cat, funds in self.mutual_funds.items():
-                if cat == category:
-                    similar_funds = [f for f in funds if f != selected_fund][:3]
-                    break
-            
-            if similar_funds:
-                with st.spinner("Fetching similar funds data..."):
-                    similar_data = self.get_stock_data(similar_funds)
+                    if data.get('data_source'):
+                        st.caption(f"Data Source: {data['data_source']}")
                 
-                if similar_data:
-                    cols = st.columns(len(similar_funds))
-                    
-                    for i, (fund, data) in enumerate(similar_data.items()):
-                        if 'error' not in data:
-                            with cols[i]:
-                                display_name = data.get('scheme_name', fund.replace('_', ' '))
-                                color = "normal" if data['change_pct'] >= 0 else "inverse"
-                                st.metric(
-                                    display_name[:20] + "..." if len(display_name) > 20 else display_name,
-                                    f"₹{data['price']:.2f}",
-                                    f"₹{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
-                                    delta_color=color
-                                )
+                else:
+                    if selected_fund in fund_data:
+                        st.error(f"Error: {fund_data[selected_fund].get('error', 'Unknown error')}")
+                    else:
+                        st.error("Could not fetch fund data")
             
             # AI Analysis for Mutual Funds
-            if self.claude_client and hasattr(self, 'agent') and self.agent:
+            if self.claude_client:
                 st.subheader("🤖 AI Fund Analysis")
                 
-                analysis_options = [
-                    "Comprehensive Fund Analysis",
-                    "Performance vs Benchmark", 
-                    "Cost & Expense Analysis",
-                    "Risk Assessment",
-                    "SIP Recommendation",
-                    "Fund Comparison"
-                ]
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    analysis_type = st.selectbox("Analysis Type:", analysis_options, key="fund_analysis_type_selectbox")
-                
-                with col2:
-                    if st.button("🚀 Generate Fund Analysis", type="secondary"):
-                        fund_data_for_analysis = self.get_stock_data([selected_fund])
-                        if selected_fund in fund_data_for_analysis and 'error' not in fund_data_for_analysis[selected_fund]:
-                            with st.spinner("🤖 Analyzing fund..."):
-                                try:
-                                    # Use the agent's mutual fund analysis method
-                                    analysis = self.agent.analyze_indian_mutual_fund(selected_fund)
-                                    st.markdown("### 🤖 Fund Analysis Result")
-                                    st.markdown(analysis)
-                                except Exception as e:
-                                    st.error(f"Analysis error: {str(e)}")
+                if st.button("🚀 Generate Fund Analysis", type="secondary"):
+                    fund_data_for_analysis = self.get_stock_data([selected_fund])
+                    if selected_fund in fund_data_for_analysis and 'error' not in fund_data_for_analysis[selected_fund]:
+                        data = fund_data_for_analysis[selected_fund]
+                        
+                        if data.get('is_mutual_fund'):
+                            prompt = f"""
+                            Analyze this Indian Mutual Fund: {data.get('scheme_name', selected_fund)}
+                            
+                            Fund Details:
+                            - Current NAV: ₹{data['price']:.2f}
+                            - Day Change: {data['change_pct']:+.1f}%
+                            - Fund House: {data.get('fund_house', 'N/A')}
+                            - Category: {data.get('scheme_category', self.get_fund_category(selected_fund))}
+                            - AMFI Code: {data.get('scheme_code', 'N/A')}
+                            - NAV Date: {data.get('nav_date', 'N/A')}
+                            
+                            Provide comprehensive analysis:
+                            1. Fund overview and investment strategy
+                            2. Performance assessment
+                            3. Risk factors and volatility
+                            4. Expense ratio considerations
+                            5. Suitability for different investor profiles
+                            6. SIP vs lump sum recommendation
+                            7. Investment recommendation (BUY/HOLD/AVOID)
+                            
+                            Keep response detailed but actionable for Indian investors.
+                            """
                         else:
-                            st.error("Unable to fetch fund data for analysis")
-            
-            elif self.claude_client:
-                st.subheader("🤖 Basic AI Fund Analysis")
-                
-                if st.button("Generate Basic Fund Analysis", type="secondary"):
-                    fund_data_for_basic_analysis = self.get_stock_data([selected_fund])
-                    if selected_fund in fund_data_for_basic_analysis:
-                        data = fund_data_for_basic_analysis[selected_fund]
+                            prompt = f"""
+                            Analyze this Indian ETF: {selected_fund}
+                            
+                            Current Price: ₹{data['price']:.2f}
+                            Day Change: {data['change_pct']:+.1f}%
+                            
+                            Provide:
+                            1. ETF overview and tracking index
+                            2. Performance vs underlying index
+                            3. Liquidity and trading volume
+                            4. Expense ratio analysis
+                            5. Investment recommendation
+                            """
                         
-                        prompt = f"""
-                        Analyze this Indian ETF/Mutual Fund: {selected_fund}
-                        
-                        Current NAV: ₹{data['price']:.2f}
-                        Day Change: {data['change_pct']:+.1f}%
-                        Category: {self.get_fund_category(selected_fund)}
-                        
-                        Provide:
-                        1. Fund overview and investment objective
-                        2. Performance analysis
-                        3. Risk factors
-                        4. Suitability for different investors
-                        5. Investment recommendation
-                        
-                        Keep response concise and actionable for Indian investors.
-                        """
-                        
-                        with st.spinner("🤖 Analyzing..."):
+                        with st.spinner("🤖 Analyzing fund..."):
                             analysis = self.call_claude_analysis(prompt)
-                            st.markdown("### Analysis Result")
+                            st.markdown("### 🤖 Fund Analysis Result")
                             st.markdown(analysis)
+                    else:
+                        st.error("Unable to fetch fund data for analysis")
     
     def get_fund_category(self, fund_symbol: str) -> str:
         """Get category for a mutual fund symbol."""
@@ -868,14 +1128,9 @@ class IndianStockDashboard:
             with st.spinner("📊 Fetching live prices for portfolio..."):
                 current_data = self.get_stock_data(symbols)
             
-            if not current_data:
-                st.error("❌ Could not fetch current market data. Please try refreshing.")
-                return
-            
             portfolio_data = []
             total_invested = 0
             total_current = 0
-            portfolio_debug = []  # For debugging
             
             for symbol, position in st.session_state.portfolio.items():
                 try:
@@ -883,9 +1138,13 @@ class IndianStockDashboard:
                     if symbol in current_data and 'error' not in current_data[symbol]:
                         current_price = current_data[symbol]['price']
                         price_source = "Live"
+                        is_mf = current_data[symbol].get('is_mutual_fund', False)
+                        nav_date = current_data[symbol].get('nav_date', '')
                     else:
                         current_price = position['avg_price']  # Fallback to avg price
                         price_source = "Fallback"
+                        is_mf = False
+                        nav_date = ''
                     
                     # Calculate values with proper error handling
                     qty = float(position['qty']) if position['qty'] else 0
@@ -900,17 +1159,21 @@ class IndianStockDashboard:
                     total_invested += invested
                     total_current += current_value
                     
-                    # Debug info
-                    portfolio_debug.append(f"{symbol}: {qty} × ₹{avg_price:.2f} = ₹{invested:,.0f} invested, {qty} × ₹{current_price:.2f} = ₹{current_value:,.0f} current")
-                    
                     # Color coding for P&L
                     pnl_color = "🟢" if pnl >= 0 else "🔴"
                     
+                    # Format current price display
+                    if is_mf and nav_date:
+                        current_price_display = f"₹{current_price:.2f} ({nav_date})"
+                    else:
+                        current_price_display = f"₹{current_price:.2f} ({price_source})"
+                    
                     portfolio_data.append({
-                        'Stock': symbol,
+                        'Investment': symbol,
+                        'Type': 'MF' if is_mf else 'Stock/ETF',
                         'Qty': int(qty),
                         'Avg Price': f"₹{avg_price:.2f}",
-                        'Current Price': f"₹{current_price:.2f} ({price_source})",
+                        'Current Price': current_price_display,
                         'Invested': f"₹{invested:,.0f}",
                         'Current Value': f"₹{current_value:,.0f}",
                         'P&L': f"{pnl_color} ₹{pnl:,.0f}",
@@ -919,20 +1182,10 @@ class IndianStockDashboard:
                     
                 except Exception as e:
                     st.error(f"Error calculating P&L for {symbol}: {e}")
-                    portfolio_debug.append(f"ERROR with {symbol}: {e}")
             
-            # Portfolio summary with debugging
+            # Portfolio summary
             total_pnl = total_current - total_invested
             total_pnl_pct = (total_pnl / total_invested * 100) if total_invested > 0 else 0
-            
-            # Debug expander
-            with st.expander("🔍 Debug Portfolio Calculations"):
-                st.text("Calculation Details:")
-                for debug_line in portfolio_debug:
-                    st.text(debug_line)
-                st.text(f"Total Invested: ₹{total_invested:,.0f}")
-                st.text(f"Total Current: ₹{total_current:,.0f}")
-                st.text(f"Total P&L: ₹{total_pnl:,.0f} ({total_pnl_pct:+.1f}%)")
             
             # Portfolio summary metrics
             col1, col2, col3, col4 = st.columns(4)
@@ -954,13 +1207,13 @@ class IndianStockDashboard:
                 else:
                     st.error(f"📉 Loss: {returns_text}")
             
-            # Portfolio table with better formatting
+            # Portfolio table
             if portfolio_data:
                 df = pd.DataFrame(portfolio_data)
                 st.dataframe(df, use_container_width=True, hide_index=True)
                 
-                # Individual stock performance chart
-                st.subheader("📊 Individual Stock Performance")
+                # Portfolio performance chart
+                st.subheader("📊 Portfolio Performance")
                 
                 perf_data = []
                 for symbol, position in st.session_state.portfolio.items():
@@ -974,7 +1227,7 @@ class IndianStockDashboard:
                         pnl_pct = ((current_value - invested) / invested * 100) if invested > 0 else 0
                         
                         perf_data.append({
-                            'Stock': symbol,
+                            'Investment': symbol,
                             'P&L %': pnl_pct,
                             'Invested': invested,
                             'Current Value': current_value
@@ -985,280 +1238,201 @@ class IndianStockDashboard:
                     
                     fig = px.bar(
                         perf_df, 
-                        x='Stock', 
+                        x='Investment', 
                         y='P&L %',
-                        title="Portfolio Performance by Stock",
+                        title="Portfolio Performance by Investment",
                         color='P&L %',
                         color_continuous_scale=['red', 'yellow', 'green']
                     )
                     fig.update_layout(height=400)
                     st.plotly_chart(fig, use_container_width=True)
-            
-            # AI Portfolio Analysis Section
-            if self.claude_client:
-                st.subheader("🤖 AI Portfolio Analysis & Recommendations")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    analysis_type = st.selectbox(
-                        "Analysis Type:",
-                        [
-                            "Complete Portfolio Review",
-                            "Buy/Sell Recommendations", 
-                            "Risk Assessment",
-                            "Rebalancing Suggestions",
-                            "Sector Analysis",
-                            "Performance vs Market"
-                        ],
-                        key="portfolio_analysis_type_selectbox"
-                    )
-                
-                with col2:
-                    if st.button("🚀 Generate AI Analysis", type="primary", key="portfolio_analysis"):
-                        # Prepare detailed portfolio data for Claude
-                        portfolio_summary = []
-                        sector_allocation = {}
-                        total_portfolio_value = 0
-                        individual_performance = []
-                        
-                        for symbol, position in st.session_state.portfolio.items():
-                            if symbol in current_data and 'error' not in current_data[symbol]:
-                                current_price = current_data[symbol]['price']
-                                sector = current_data[symbol].get('sector', 'Unknown')
-                                pe_ratio = current_data[symbol].get('pe_ratio', 'N/A')
-                                day_change_pct = current_data[symbol].get('change_pct', 0)
-                            else:
-                                current_price = position['avg_price']
-                                sector = 'Unknown'
-                                pe_ratio = 'N/A'
-                                day_change_pct = 0
-                            
-                            qty = float(position['qty'])
-                            avg_price = float(position['avg_price'])
-                            invested = qty * avg_price
-                            current_value = qty * current_price
-                            pnl = current_value - invested
-                            pnl_pct = (pnl / invested * 100) if invested > 0 else 0
-                            
-                            total_portfolio_value += current_value
-                            
-                            # Sector allocation
-                            if sector not in sector_allocation:
-                                sector_allocation[sector] = 0
-                            sector_allocation[sector] += current_value
-                            
-                            portfolio_summary.append(f"""
-                            {symbol} ({sector}):
-                            - Holdings: {int(qty)} shares @ ₹{avg_price:.2f} avg cost
-                            - Current Price: ₹{current_price:.2f} (today: {day_change_pct:+.1f}%)
-                            - Investment: ₹{invested:,.0f} → Current Value: ₹{current_value:,.0f}
-                            - P&L: ₹{pnl:,.0f} ({pnl_pct:+.1f}%)
-                            - P/E Ratio: {pe_ratio}
-                            - Portfolio Weight: {(current_value/total_portfolio_value)*100:.1f}%
-                            """)
-                            
-                            individual_performance.append({
-                                'symbol': symbol,
-                                'sector': sector,
-                                'pnl_pct': pnl_pct,
-                                'weight': (current_value/total_portfolio_value)*100,
-                                'current_price': current_price,
-                                'avg_price': avg_price
-                            })
-                        
-                        # Calculate sector allocation percentages
-                        sector_percentages = {sector: (value/total_portfolio_value)*100 
-                                           for sector, value in sector_allocation.items()}
-                        
-                        # Get market context
-                        indices_data = self.get_indices_data()
-                        nifty_change = indices_data.get('NIFTY', {}).get('change_pct', 0)
-                        sensex_change = indices_data.get('SENSEX', {}).get('change_pct', 0)
-                        
-                        # Create comprehensive prompt based on analysis type
-                        if analysis_type == "Complete Portfolio Review":
-                            prompt = f"""
-                            Conduct a comprehensive review of this Indian stock portfolio:
-                            
-                            PORTFOLIO HOLDINGS:
-                            {chr(10).join(portfolio_summary)}
-                            
-                            PORTFOLIO SUMMARY:
-                            - Total Portfolio Value: ₹{total_portfolio_value:,.0f}
-                            - Total P&L: ₹{total_pnl:,.0f} ({total_pnl_pct:+.1f}%)
-                            - Number of Holdings: {len(st.session_state.portfolio)}
-                            
-                            SECTOR ALLOCATION:
-                            {chr(10).join([f"- {sector}: {pct:.1f}%" for sector, pct in sector_percentages.items()])}
-                            
-                            MARKET CONTEXT:
-                            - Nifty 50: {nifty_change:+.1f}% today
-                            - Sensex: {sensex_change:+.1f}% today
-                            
-                            Provide comprehensive analysis covering:
-                            1. **Overall Portfolio Health** - Risk/return profile
-                            2. **Diversification Assessment** - Sector and stock concentration
-                            3. **Performance Analysis** - vs market benchmarks
-                            4. **Individual Stock Review** - Each holding's prospects
-                            5. **Risk Factors** - What could hurt the portfolio
-                            6. **Opportunities** - What's missing or underweight
-                            7. **Action Plan** - Specific next steps for optimization
-                            
-                            Be specific with stock names, percentages, and actionable recommendations.
-                            """
-                        
-                        elif analysis_type == "Buy/Sell Recommendations":
-                            prompt = f"""
-                            Provide specific BUY/SELL recommendations for this Indian portfolio:
-                            
-                            CURRENT HOLDINGS:
-                            {chr(10).join(portfolio_summary)}
-                            
-                            MARKET CONTEXT:
-                            - Nifty 50: {nifty_change:+.1f}% today
-                            - Sensex: {sensex_change:+.1f}% today
-                            - Portfolio Total: ₹{total_portfolio_value:,.0f}
-                            
-                            For each stock in the portfolio, provide:
-                            
-                            **INDIVIDUAL STOCK RECOMMENDATIONS:**
-                            For each holding, specify:
-                            - 🔴 SELL: If you recommend selling (with target exit price)
-                            - 🟡 HOLD: If you recommend holding (with price targets)  
-                            - 🟢 BUY MORE: If you recommend adding (with entry price)
-                            
-                            **NEW STOCK RECOMMENDATIONS:**
-                            - What NEW Indian stocks to BUY for better diversification
-                            - Specific entry prices and position sizes
-                            - Rationale for each recommendation
-                            
-                            **PORTFOLIO ACTIONS:**
-                            - Which existing position to REDUCE and by how much
-                            - Which existing position to INCREASE and by how much
-                            - Timeline for these actions (immediate vs gradual)
-                            
-                            Be very specific with prices, quantities, and reasoning.
-                            """
-                        
-                        elif analysis_type == "Risk Assessment":
-                            prompt = f"""
-                            Assess the risk profile of this Indian portfolio:
-                            
-                            PORTFOLIO DETAILS:
-                            {chr(10).join(portfolio_summary)}
-                            
-                            RISK ANALYSIS REQUIRED:
-                            1. **Concentration Risk** - Over-exposure to specific stocks/sectors
-                            2. **Market Risk** - Sensitivity to Nifty/Sensex movements
-                            3. **Sector Risk** - Regulatory or industry-specific risks
-                            4. **Currency Risk** - USD/INR exposure through IT/Pharma stocks
-                            5. **Liquidity Risk** - Ability to exit positions quickly
-                            6. **Volatility Assessment** - Expected price swings
-                            
-                            Provide:
-                            - Risk score (1-10) with reasoning
-                            - Biggest risk factors in the portfolio
-                            - Hedging recommendations
-                            - Stop-loss suggestions for each holding
-                            - Portfolio stress test scenarios
-                            """
-                        
-                        elif analysis_type == "Rebalancing Suggestions":
-                            prompt = f"""
-                            Suggest portfolio rebalancing for optimal allocation:
-                            
-                            CURRENT ALLOCATION:
-                            {chr(10).join(portfolio_summary)}
-                            
-                            SECTOR WEIGHTS:
-                            {chr(10).join([f"- {sector}: {pct:.1f}%" for sector, pct in sector_percentages.items()])}
-                            
-                            Provide specific rebalancing plan:
-                            1. **Target Allocation** - Ideal sector/stock weights
-                            2. **Trades Required** - Exact buy/sell amounts in ₹
-                            3. **Priority Order** - Which trades to do first
-                            4. **Tax Implications** - LTCG/STCG considerations
-                            5. **Execution Timeline** - When to make each trade
-                            6. **Alternative Approach** - Gradual vs immediate rebalancing
-                            
-                            Focus on practical, executable recommendations.
-                            """
-                        
-                        elif analysis_type == "Sector Analysis":
-                            prompt = f"""
-                            Analyze the sectoral composition of this portfolio:
-                            
-                            SECTOR BREAKDOWN:
-                            {chr(10).join([f"- {sector}: {pct:.1f}% (₹{sector_allocation[sector]:,.0f})" for sector, pct in sector_percentages.items()])}
-                            
-                            INDIVIDUAL HOLDINGS:
-                            {chr(10).join(portfolio_summary)}
-                            
-                            Analyze:
-                            1. **Sector Diversification** - Over/under-weight analysis
-                            2. **Sector Outlook** - Which sectors to increase/decrease
-                            3. **Missing Sectors** - What's not represented
-                            4. **Sector Correlation** - Risk of sectors moving together
-                            5. **Policy Impact** - Government policies affecting each sector
-                            6. **Cyclical Analysis** - Sector rotation opportunities
-                            
-                            Recommend specific sector allocation changes.
-                            """
-                        
-                        else:  # Performance vs Market
-                            prompt = f"""
-                            Compare this portfolio's performance against Indian market benchmarks:
-                            
-                            PORTFOLIO PERFORMANCE:
-                            Total P&L: {total_pnl_pct:+.1f}%
-                            
-                            INDIVIDUAL STOCK PERFORMANCE:
-                            {chr(10).join([f"- {perf['symbol']}: {perf['pnl_pct']:+.1f}% (weight: {perf['weight']:.1f}%)" for perf in individual_performance])}
-                            
-                            TODAY'S MARKET:
-                            - Nifty 50: {nifty_change:+.1f}%
-                            - Sensex: {sensex_change:+.1f}%
-                            
-                            Analyze:
-                            1. **Benchmark Comparison** - vs Nifty 50, Sensex performance
-                            2. **Alpha Generation** - Which stocks outperformed market
-                            3. **Beta Analysis** - Portfolio sensitivity to market moves
-                            4. **Attribution Analysis** - What drove performance
-                            5. **Risk-Adjusted Returns** - Return per unit of risk taken
-                            6. **Improvement Areas** - How to beat benchmarks consistently
-                            """
-                        
-                        # Generate analysis
-                        with st.spinner(f"🤖 Generating {analysis_type.lower()}..."):
-                            analysis = self.call_claude_analysis(prompt)
-                            
-                            st.markdown(f"### 🤖 {analysis_type}")
-                            st.markdown(analysis)
-                            
-                            # Save analysis to session state for reference
-                            if 'analysis_history' not in st.session_state:
-                                st.session_state.analysis_history = []
-                            
-                            st.session_state.analysis_history.append({
-                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'type': analysis_type,
-                                'analysis': analysis[:500] + "..." if len(analysis) > 500 else analysis
-                            })
-                
-                # Show recent analysis history
-                if 'analysis_history' in st.session_state and st.session_state.analysis_history:
-                    with st.expander("📚 Recent Analysis History"):
-                        for i, hist in enumerate(reversed(st.session_state.analysis_history[-5:])):
-                            st.markdown(f"**{hist['timestamp']} - {hist['type']}**")
-                            st.text(hist['analysis'])
-                            st.markdown("---")
-            
-            else:
-                st.info("🔑 Configure Claude API key in sidebar to get AI portfolio analysis and buy/sell recommendations")
         
         else:
             st.info("Add some positions to see portfolio analysis")
+    
+    def get_global_indices_data(self) -> Dict:
+        """Fetch major global indices data."""
+        indices = {}
+        
+        # Global indices with their yfinance symbols
+        global_indices_map = {
+            # US Indices
+            'S&P 500': '^GSPC',
+            'NASDAQ': '^IXIC', 
+            'Dow Jones': '^DJI',
+            
+            # Asian Indices
+            'Nikkei 225': '^N225',
+            'Hang Seng': '^HSI',
+            'Shanghai Composite': '000001.SS',
+            'KOSPI': '^KS11',
+            'Taiwan Weighted': '^TWII',
+            
+            # European Indices
+            'FTSE 100': '^FTSE',
+            'DAX': '^GDAXI',
+            'CAC 40': '^FCHI',
+            'Euro Stoxx 50': '^STOXX50E',
+            
+            # Other Major Indices
+            'TSX (Canada)': '^GSPTSE',
+            'ASX 200 (Australia)': '^AXJO',
+            'Bovespa (Brazil)': '^BVSP',
+            
+            # Commodities
+            'Gold': 'GC=F',
+            'Crude Oil': 'CL=F',
+            'Silver': 'SI=F'
+        }
+        
+        for name, symbol in global_indices_map.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="2d")
+                
+                if not hist.empty and len(hist) >= 1:
+                    current_price = hist['Close'].iloc[-1]
+                    
+                    # Calculate daily change
+                    if len(hist) >= 2:
+                        prev_close = hist['Close'].iloc[-2]
+                    else:
+                        prev_close = hist['Open'].iloc[0]
+                    
+                    change = current_price - prev_close
+                    change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                    
+                    indices[name] = {
+                        'symbol': symbol,
+                        'price': current_price,
+                        'prev_close': prev_close,
+                        'change': change,
+                        'change_pct': change_pct,
+                        'timestamp': datetime.now(),
+                        'region': self.get_region_for_index(name)
+                    }
+                    
+            except Exception as e:
+                print(f"Error fetching {name}: {e}")
+        
+        return indices
+
+    def get_region_for_index(self, index_name: str) -> str:
+        """Get region for an index."""
+        regions = {
+            'North America': ['S&P 500', 'NASDAQ', 'Dow Jones', 'TSX (Canada)'],
+            'Asia Pacific': ['Nikkei 225', 'Hang Seng', 'Shanghai Composite', 'KOSPI', 'Taiwan Weighted', 'ASX 200 (Australia)'],
+            'Europe': ['FTSE 100', 'DAX', 'CAC 40', 'Euro Stoxx 50'],
+            'South America': ['Bovespa (Brazil)'],
+            'Commodities': ['Gold', 'Crude Oil', 'Silver']
+        }
+        
+        for region, indices in regions.items():
+            if index_name in indices:
+                return region
+        return 'Other'
+
+    def render_global_indices(self):
+        """Render global indices section."""
+        st.header("🌍 Global Market Indices")
+        
+        # Add refresh button
+        if st.button("🔄 Refresh Global Data", type="primary"):
+            st.rerun()
+        
+        # Fetch global indices data
+        with st.spinner("📡 Fetching global market data..."):
+            global_data = self.get_global_indices_data()
+        
+        if not global_data:
+            st.error("Could not fetch global indices data. Please try again.")
+            return
+        
+        # Performance overview
+        st.subheader("📊 Today's Global Performance")
+        
+        # Group by regions
+        regions = {}
+        for name, data in global_data.items():
+            region = data['region']
+            if region not in regions:
+                regions[region] = []
+            regions[region].append((name, data))
+        
+        # Display by regions
+        for region, indices in regions.items():
+            st.markdown(f"### {region}")
+            
+            # Calculate number of columns
+            num_cols = min(len(indices), 4)
+            cols = st.columns(num_cols)
+            
+            for i, (name, data) in enumerate(indices):
+                with cols[i % num_cols]:
+                    # Format price based on index type
+                    if data['region'] == 'Commodities':
+                        if 'Gold' in name or 'Silver' in name:
+                            price_text = f"${data['price']:.2f}/oz"
+                        else:
+                            price_text = f"${data['price']:.2f}/bbl"
+                    else:
+                        price_text = f"{data['price']:.2f}"
+                    
+                    color = "normal" if data['change_pct'] >= 0 else "inverse"
+                    st.metric(
+                        name,
+                        price_text,
+                        f"{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
+                        delta_color=color
+                    )
+        
+        # Global market insights
+        if self.claude_client:
+            st.subheader("🤖 Global Market Analysis")
+            
+            if st.button("Generate Global Analysis", type="secondary"):
+                # Prepare global market summary
+                market_summary = []
+                regional_performance = {}
+                
+                for name, data in global_data.items():
+                    region = data['region']
+                    change_pct = data['change_pct']
+                    
+                    market_summary.append(f"- {name}: {change_pct:+.2f}%")
+                    
+                    if region not in regional_performance:
+                        regional_performance[region] = []
+                    regional_performance[region].append(change_pct)
+                
+                # Calculate regional averages
+                regional_avg = {region: sum(changes)/len(changes) 
+                              for region, changes in regional_performance.items()}
+                
+                prompt = f"""
+                Analyze today's global market performance and its implications for Indian investors:
+                
+                GLOBAL INDICES PERFORMANCE:
+                {chr(10).join(market_summary)}
+                
+                REGIONAL AVERAGES:
+                {chr(10).join([f"- {region}: {avg:+.1f}%" for region, avg in regional_avg.items()])}
+                
+                Provide analysis covering:
+                1. Global market sentiment and risk appetite
+                2. Impact on Indian markets (Nifty/Sensex correlation)
+                3. Sector implications for Indian stocks
+                4. Currency effects on Indian IT/Pharma exporters
+                5. Investment strategy adjustments for Indian investors
+                6. Opportunities to capitalize on global trends
+                
+                Keep recommendations specific to Indian market context.
+                """
+                
+                with st.spinner("🤖 Analyzing global markets..."):
+                    analysis = self.call_claude_analysis(prompt)
+                    st.markdown("### 🌍 Global Market Analysis")
+                    st.markdown(analysis)
     
     def render_market_chat(self):
         """Render AI market chat section."""
@@ -1310,17 +1484,19 @@ class IndianStockDashboard:
         st.sidebar.subheader("📋 Manage Watchlist")
         
         # Add to watchlist
-        new_watchlist_stock = st.sidebar.selectbox(
-            "Add to watchlist:",
-            [stock for stock in self.popular_stocks if stock not in st.session_state.watchlist],
-            key="sidebar_add_watchlist_selectbox"
-        )
-        
-        if st.sidebar.button("➕ Add to Watchlist"):
-            if new_watchlist_stock and new_watchlist_stock not in st.session_state.watchlist:
-                st.session_state.watchlist.append(new_watchlist_stock)
-                st.sidebar.success(f"Added {new_watchlist_stock}")
-                st.rerun()
+        available_stocks = [stock for stock in self.popular_stocks if stock not in st.session_state.watchlist]
+        if available_stocks:
+            new_watchlist_stock = st.sidebar.selectbox(
+                "Add to watchlist:",
+                available_stocks,
+                key="sidebar_add_watchlist_selectbox"
+            )
+            
+            if st.sidebar.button("➕ Add to Watchlist"):
+                if new_watchlist_stock:
+                    st.session_state.watchlist.append(new_watchlist_stock)
+                    st.sidebar.success(f"Added {new_watchlist_stock}")
+                    st.rerun()
         
         # Remove from watchlist
         if st.session_state.watchlist:
@@ -1353,370 +1529,16 @@ class IndianStockDashboard:
         st.sidebar.info("Market Hours: 9:15 AM - 3:30 PM IST")
         st.sidebar.info("Currency: All prices in ₹")
         
+        # Data sources info
+        st.sidebar.subheader("📊 Data Sources")
+        st.sidebar.info("Stocks & ETFs: Yahoo Finance")
+        st.sidebar.info("Mutual Funds: AMFI via MFApi")
+        
         # Agent status
         if AGENT_AVAILABLE:
             st.sidebar.success("✅ Agent Available")
         else:
             st.sidebar.warning("⚠️ Agent Import Failed")
-    
-# Code for Global indices
-    def get_global_indices_data(self) -> Dict:
-        """Fetch major global indices data."""
-        indices = {}
-        
-        # Global indices with their yfinance symbols
-        global_indices_map = {
-            # US Indices
-            'S&P 500': '^GSPC',
-            'NASDAQ': '^IXIC', 
-            'Dow Jones': '^DJI',
-            
-            # Asian Indices
-            'Nikkei 225': '^N225',
-            'Hang Seng': '^HSI',
-            'Shanghai Composite': '000001.SS',
-            'KOSPI': '^KS11',
-            'Taiwan Weighted': '^TWII',
-            
-            # European Indices
-            'FTSE 100': '^FTSE',
-            'DAX': '^GDAXI',
-            'CAC 40': '^FCHI',
-            'Euro Stoxx 50': '^STOXX50E',
-            'FTSE MIB': 'FTSEMIB.MI',
-            
-            # Other Major Indices
-            'TSX (Canada)': '^GSPTSE',
-            'ASX 200 (Australia)': '^AXJO',
-            'Bovespa (Brazil)': '^BVSP',
-            'FTSE/JSE (South Africa)': '^J203.JO',
-            
-            # Emerging Markets
-            'MSCI Emerging Markets': 'EEM',
-            'FTSE Emerging': 'VWO',
-            
-            # Commodities (as indices)
-            'Gold': 'GC=F',
-            'Crude Oil': 'CL=F',
-            'Silver': 'SI=F',
-            'Copper': 'HG=F'
-        }
-        
-        for name, symbol in global_indices_map.items():
-            try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="2d")  # Get 2 days to calculate change
-                
-                if not hist.empty and len(hist) >= 1:
-                    current_price = hist['Close'].iloc[-1]
-                    
-                    # Calculate daily change
-                    if len(hist) >= 2:
-                        prev_close = hist['Close'].iloc[-2]
-                    else:
-                        prev_close = hist['Open'].iloc[0]
-                    
-                    change = current_price - prev_close
-                    change_pct = (change / prev_close * 100) if prev_close > 0 else 0
-                    
-                    indices[name] = {
-                        'symbol': symbol,
-                        'price': current_price,
-                        'prev_close': prev_close,
-                        'change': change,
-                        'change_pct': change_pct,
-                        'high': hist['High'].iloc[-1] if len(hist) > 0 else current_price,
-                        'low': hist['Low'].iloc[-1] if len(hist) > 0 else current_price,
-                        'volume': hist['Volume'].iloc[-1] if len(hist) > 0 else 0,
-                        'timestamp': datetime.now(),
-                        'region': self.get_region_for_index(name)
-                    }
-                    
-            except Exception as e:
-                print(f"Error fetching {name}: {e}")
-                # Continue to next index instead of failing completely
-        
-        return indices
-
-    def get_region_for_index(self, index_name: str) -> str:
-        """Get region for an index."""
-        regions = {
-            'North America': ['S&P 500', 'NASDAQ', 'Dow Jones', 'TSX (Canada)'],
-            'Asia Pacific': ['Nikkei 225', 'Hang Seng', 'Shanghai Composite', 'KOSPI', 'Taiwan Weighted', 'ASX 200 (Australia)'],
-            'Europe': ['FTSE 100', 'DAX', 'CAC 40', 'Euro Stoxx 50', 'FTSE MIB'],
-            'Emerging Markets': ['Bovespa (Brazil)', 'FTSE/JSE (South Africa)', 'MSCI Emerging Markets', 'FTSE Emerging'],
-            'Commodities': ['Gold', 'Crude Oil', 'Silver', 'Copper']
-        }
-        
-        for region, indices in regions.items():
-            if index_name in indices:
-                return region
-        return 'Other'
-
-    def create_global_heatmap(self, indices_data: Dict) -> go.Figure:
-        """Create a heatmap of global market performance."""
-        if not indices_data:
-            return None
-        
-        # Prepare data for heatmap
-        regions = {}
-        for name, data in indices_data.items():
-            region = data['region']
-            if region not in regions:
-                regions[region] = []
-            
-            regions[region].append({
-                'name': name,
-                'change_pct': data['change_pct'],
-                'price': data['price']
-            })
-        
-        # Create heatmap data
-        all_names = []
-        all_regions = []
-        all_changes = []
-        
-        for region, indices in regions.items():
-            for index in indices:
-                all_names.append(index['name'])
-                all_regions.append(region)
-                all_changes.append(index['change_pct'])
-        
-        # Create the heatmap
-        fig = go.Figure(data=go.Scatter(
-            x=all_regions,
-            y=all_names,
-            mode='markers+text',
-            marker=dict(
-                size=[abs(change)*3 + 20 for change in all_changes],  # Size based on change magnitude
-                color=all_changes,
-                colorscale='RdYlGn',
-                colorbar=dict(title="Change %"),
-                line=dict(width=1, color='white')
-            ),
-            text=[f"{change:+.1f}%" for change in all_changes],
-            textposition="middle center",
-            textfont=dict(color='white', size=10, family='Arial Black'),
-            hovertemplate='<b>%{y}</b><br>' +
-                        'Region: %{x}<br>' +
-                        'Change: %{text}<br>' +
-                        '<extra></extra>'
-        ))
-        
-        fig.update_layout(
-            title="🌍 Global Market Performance Heatmap",
-            xaxis_title="Region",
-            yaxis_title="Index",
-            height=600,
-            template="plotly_white"
-        )
-        
-        return fig
-
-    def render_global_indices(self):
-        """Render global indices section."""
-        st.header("🌍 Global Market Indices")
-        
-        # Add refresh button
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            if st.button("🔄 Refresh Global Data", type="primary"):
-                st.rerun()
-        
-        # Fetch global indices data
-        with st.spinner("📡 Fetching global market data..."):
-            global_data = self.get_global_indices_data()
-        
-        if not global_data:
-            st.error("Could not fetch global indices data. Please try again.")
-            return
-        
-        # Performance overview
-        st.subheader("📊 Today's Global Performance")
-        
-        # Group by regions
-        regions = {}
-        for name, data in global_data.items():
-            region = data['region']
-            if region not in regions:
-                regions[region] = []
-            regions[region].append((name, data))
-        
-        # Display by regions
-        for region, indices in regions.items():
-            st.markdown(f"### {region}")
-            
-            # Calculate number of columns based on number of indices
-            num_cols = min(len(indices), 4)
-            cols = st.columns(num_cols)
-            
-            for i, (name, data) in enumerate(indices):
-                with cols[i % num_cols]:
-                    # Format price based on index type
-                    if data['region'] == 'Commodities':
-                        if 'Gold' in name or 'Silver' in name:
-                            price_text = f"${data['price']:.2f}/oz"
-                        else:
-                            price_text = f"${data['price']:.2f}/bbl"
-                    else:
-                        price_text = f"{data['price']:.2f}"
-                    
-                    color = "normal" if data['change_pct'] >= 0 else "inverse"
-                    st.metric(
-                        name,
-                        price_text,
-                        f"{data['change']:+.2f} ({data['change_pct']:+.2f}%)",
-                        delta_color=color
-                    )
-        
-        # Global heatmap
-        st.subheader("🗺️ Global Performance Heatmap")
-        heatmap_fig = self.create_global_heatmap(global_data)
-        if heatmap_fig:
-            st.plotly_chart(heatmap_fig, use_container_width=True)
-        
-        # Market correlation analysis
-        st.subheader("📈 Market Trends Analysis")
-        
-        # Winners and losers
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 🏆 Top Performers")
-            winners = sorted(global_data.items(), key=lambda x: x[1]['change_pct'], reverse=True)[:5]
-            for name, data in winners:
-                st.success(f"**{name}**: +{data['change_pct']:.2f}%")
-        
-        with col2:
-            st.markdown("#### 📉 Underperformers") 
-            losers = sorted(global_data.items(), key=lambda x: x[1]['change_pct'])[:5]
-            for name, data in losers:
-                st.error(f"**{name}**: {data['change_pct']:.2f}%")
-        
-        # Currency impact section
-        st.subheader("💱 Currency Impact on Indian Markets")
-        
-        usd_inr = self.get_usd_inr_rate()
-        
-        # Get USD index (DXY) if available
-        try:
-            dxy = yf.Ticker('DX-Y.NYB')
-            dxy_hist = dxy.history(period="2d")
-            if not dxy_hist.empty:
-                dxy_current = dxy_hist['Close'].iloc[-1]
-                dxy_prev = dxy_hist['Close'].iloc[-2] if len(dxy_hist) >= 2 else dxy_hist['Open'].iloc[0]
-                dxy_change = ((dxy_current - dxy_prev) / dxy_prev * 100) if dxy_prev > 0 else 0
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("USD Index (DXY)", f"{dxy_current:.2f}", f"{dxy_change:+.2f}%")
-                
-                with col2:
-                    st.metric("USD/INR", f"₹{usd_inr:.2f}")
-                
-                with col3:
-                    # Show impact on IT stocks (USD exposure)
-                    if 'TCS' in current_data or 'INFY' in current_data:
-                        it_impact = "Positive" if dxy_change > 0 else "Negative"
-                        st.info(f"IT Stock Impact: {it_impact}")
-        
-        except Exception as e:
-            st.warning("Could not fetch currency data")
-        
-        # Global market insights
-        if self.claude_client:
-            st.subheader("🤖 Global Market Insights")
-            
-            if st.button("Generate Global Market Analysis", type="secondary"):
-                # Prepare global market summary for AI
-                market_summary = []
-                regional_performance = {}
-                
-                for name, data in global_data.items():
-                    region = data['region']
-                    change_pct = data['change_pct']
-                    
-                    market_summary.append(f"- {name}: {change_pct:+.2f}%")
-                    
-                    if region not in regional_performance:
-                        regional_performance[region] = []
-                    regional_performance[region].append(change_pct)
-                
-                # Calculate regional averages
-                regional_avg = {region: sum(changes)/len(changes) 
-                            for region, changes in regional_performance.items()}
-                
-                prompt = f"""
-                Analyze today's global market performance and its implications for Indian investors:
-                
-                GLOBAL INDICES PERFORMANCE:
-                {chr(10).join(market_summary)}
-                
-                REGIONAL AVERAGES:
-                {chr(10).join([f"- {region}: {avg:+.1f}%" for region, avg in regional_avg.items()])}
-                
-                USD/INR: ₹{usd_inr:.2f}
-                
-                Provide analysis covering:
-                1. **Global Market Sentiment** - Risk-on or risk-off mood
-                2. **Impact on Indian Markets** - How global moves affect Nifty/Sensex
-                3. **Sector Implications** - Which Indian sectors benefit/suffer
-                4. **Currency Effects** - USD/INR impact on IT, Pharma exporters
-                5. **Investment Strategy** - Should Indian investors adjust portfolios
-                6. **Opportunities** - Any global trends to capitalize on locally
-                
-                Keep recommendations specific to Indian market context.
-                """
-                
-                with st.spinner("🤖 Analyzing global markets..."):
-                    analysis = self.call_claude_analysis(prompt)
-                    st.markdown("### 🌍 Global Market Analysis")
-                    st.markdown(analysis)
-        
-        # Time zone display
-        st.subheader("🕒 Global Market Hours")
-        
-        # Define major market hours (in IST)
-        market_hours = {
-            'Indian Markets': ('09:15', '15:30'),
-            'Tokyo': ('05:30', '11:30'),
-            'Hong Kong': ('06:45', '13:00'),
-            'London': ('13:30', '22:00'),
-            'New York': ('19:30', '02:00')  # Next day
-        }
-        
-        current_ist = datetime.now(self.ist)
-        current_time = current_ist.time()
-        
-        cols = st.columns(len(market_hours))
-        
-        for i, (market, (open_time, close_time)) in enumerate(market_hours.items()):
-            with cols[i]:
-                open_dt = datetime.strptime(open_time, "%H:%M").time()
-                close_dt = datetime.strptime(close_time, "%H:%M").time()
-                
-                # Handle overnight sessions (like NY)
-                if close_dt < open_dt:  # Overnight session
-                    is_open = current_time >= open_dt or current_time <= close_dt
-                else:
-                    is_open = open_dt <= current_time <= close_dt
-                
-                # Account for weekends
-                is_weekend = current_ist.weekday() >= 5
-                if is_weekend and market != 'Commodities':
-                    is_open = False
-                
-                status = "🟢 OPEN" if is_open else "🔴 CLOSED"
-                
-                st.metric(
-                    market,
-                    f"{open_time}-{close_time} IST",
-                    status
-                )
-
-
-
 
     def run(self):
         """Main dashboard runner."""
@@ -1727,13 +1549,13 @@ class IndianStockDashboard:
             # Render main content
             self.render_header()
             
-            # Main tabs - ADD the new global indices tab
+            # Main tabs
             tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
                 "📊 Market Overview",
                 "📈 Stock Analysis", 
                 "🏦 Mutual Funds/ETFs",
                 "💼 Portfolio",
-                "🌍 Global Markets",  # NEW TAB
+                "🌍 Global Markets",
                 "🤖 AI Assistant"
             ])
             
@@ -1749,10 +1571,10 @@ class IndianStockDashboard:
             with tab4:
                 self.render_portfolio()
             
-            with tab5:  # NEW TAB CONTENT
+            with tab5:
                 self.render_global_indices()
             
-            with tab6:  # Updated tab number
+            with tab6:
                 self.render_market_chat()
             
         except Exception as e:
