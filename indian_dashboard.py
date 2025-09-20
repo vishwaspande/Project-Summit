@@ -56,6 +56,13 @@ except ImportError:
     except ImportError:
         AGENT_AVAILABLE = False
 
+# Import the investment performance agent
+try:
+    from investment_performance_agent import analyze_portfolio_performance
+    PERFORMANCE_AGENT_AVAILABLE = True
+except ImportError:
+    PERFORMANCE_AGENT_AVAILABLE = False
+
 # Custom CSS styling
 st.markdown("""
 <style>
@@ -1246,6 +1253,163 @@ class IndianStockDashboard:
                     )
                     fig.update_layout(height=400)
                     st.plotly_chart(fig, use_container_width=True)
+                
+                # Advanced Portfolio Performance Analysis
+                if PERFORMANCE_AGENT_AVAILABLE:
+                    st.subheader("🎯 Advanced Portfolio Analysis")
+                    
+                    with st.spinner("🔍 Analyzing portfolio performance..."):
+                        # Convert session state portfolio to the format expected by the agent
+                        performance_analysis = analyze_portfolio_performance(st.session_state.portfolio)
+                    
+                    if 'error' not in performance_analysis:
+                        # Create tabs for different analysis views
+                        perf_tab1, perf_tab2, perf_tab3 = st.tabs([
+                            "📊 Performance Summary", 
+                            "🎯 Risk Analysis", 
+                            "💡 Recommendations"
+                        ])
+                        
+                        with perf_tab1:
+                            # Performance metrics
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                diversity_score = performance_analysis['diversity_score']
+                                diversity_color = "🟢" if diversity_score > 70 else "🟡" if diversity_score > 40 else "🔴"
+                                st.metric("Diversity Score", f"{diversity_score:.1f}/100", help="Higher is better diversified")
+                                st.write(f"{diversity_color} Diversification Level")
+                            
+                            with col2:
+                                risk_level = performance_analysis['risk_assessment']['level']
+                                risk_color = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}.get(risk_level, "⚪")
+                                st.metric("Risk Level", risk_level)
+                                st.write(f"{risk_color} Risk Assessment")
+                            
+                            with col3:
+                                if performance_analysis.get('best_performer'):
+                                    bp = performance_analysis['best_performer']
+                                    st.metric(
+                                        "Best Performer", 
+                                        bp['symbol'], 
+                                        f"{bp['gain_loss_pct']:+.1f}%",
+                                        delta_color="normal"
+                                    )
+                                
+                            # Best and Worst Performers
+                            st.subheader("🏆 Top Performers")
+                            perf_col1, perf_col2 = st.columns(2)
+                            
+                            with perf_col1:
+                                if performance_analysis.get('best_performer'):
+                                    bp = performance_analysis['best_performer']
+                                    st.success(f"🏆 **Best: {bp['symbol']}**")
+                                    st.write(f"Sector: {bp['sector']}")
+                                    st.write(f"Gain: ₹{bp['absolute_gain']:,.0f} ({bp['gain_loss_pct']:+.1f}%)")
+                                
+                            with perf_col2:
+                                if performance_analysis.get('worst_performer'):
+                                    wp = performance_analysis['worst_performer']
+                                    st.error(f"📉 **Worst: {wp['symbol']}**")
+                                    st.write(f"Sector: {wp['sector']}")
+                                    st.write(f"Loss: ₹{wp['absolute_loss']:,.0f} ({wp['gain_loss_pct']:+.1f}%)")
+                            
+                            # Sector Allocation Chart
+                            if performance_analysis.get('sector_allocation'):
+                                st.subheader("🥧 Sector Allocation")
+                                sector_data = performance_analysis['sector_allocation']
+                                
+                                fig_pie = px.pie(
+                                    values=list(sector_data.values()),
+                                    names=list(sector_data.keys()),
+                                    title="Portfolio Sector Allocation"
+                                )
+                                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                                fig_pie.update_layout(height=400)
+                                st.plotly_chart(fig_pie, use_container_width=True)
+                        
+                        with perf_tab2:
+                            # Risk Analysis
+                            st.subheader("⚠️ Risk Metrics")
+                            
+                            risk_metrics = performance_analysis['risk_assessment']['metrics']
+                            risk_level = performance_analysis['risk_assessment']['level']
+                            
+                            # Risk level indicator
+                            risk_colors = {"LOW": "#4CAF50", "MEDIUM": "#FF9800", "HIGH": "#F44336"}
+                            st.markdown(f"""
+                            <div style="padding: 10px; background-color: {risk_colors.get(risk_level, '#gray')}20; 
+                                        border-left: 4px solid {risk_colors.get(risk_level, '#gray')}; border-radius: 5px;">
+                                <h4 style="color: {risk_colors.get(risk_level, '#gray')};">Risk Level: {risk_level}</h4>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Risk metrics display
+                            risk_col1, risk_col2 = st.columns(2)
+                            
+                            with risk_col1:
+                                st.metric(
+                                    "Max Sector Concentration", 
+                                    f"{risk_metrics.get('max_sector_concentration', 0):.1f}%",
+                                    help="Percentage of portfolio in largest sector"
+                                )
+                                st.metric(
+                                    "Number of Positions", 
+                                    int(risk_metrics.get('number_of_positions', 0)),
+                                    help="Total number of different investments"
+                                )
+                            
+                            with risk_col2:
+                                st.metric(
+                                    "High Risk Allocation", 
+                                    f"{risk_metrics.get('high_risk_allocation', 0):.1f}%",
+                                    help="Percentage in high-risk investments"
+                                )
+                                st.metric(
+                                    "Diversification Ratio", 
+                                    f"{risk_metrics.get('diversification_ratio', 0):.2f}",
+                                    help="Sectors per position (higher is better)"
+                                )
+                            
+                            # Risk guidelines
+                            st.info("""
+                            **Risk Guidelines:**
+                            - 🟢 **LOW**: Well diversified, stable investments
+                            - 🟡 **MEDIUM**: Moderate concentration, balanced risk  
+                            - 🔴 **HIGH**: Concentrated positions, high volatility assets
+                            """)
+                        
+                        with perf_tab3:
+                            # Recommendations
+                            st.subheader("💡 Investment Recommendations")
+                            
+                            recommendations = performance_analysis.get('recommendations', [])
+                            
+                            if recommendations:
+                                for i, rec in enumerate(recommendations, 1):
+                                    st.markdown(f"**{i}.** {rec}")
+                            else:
+                                st.info("No specific recommendations at this time. Portfolio looks balanced!")
+                            
+                            # Additional insights
+                            st.subheader("📈 Portfolio Insights")
+                            
+                            total_gain_loss_pct = performance_analysis['total_gain_loss']['percentage']
+                            
+                            if total_gain_loss_pct > 10:
+                                st.success("🎉 Your portfolio is performing well! Consider reviewing profit-booking strategies.")
+                            elif total_gain_loss_pct > 0:
+                                st.info("📊 Portfolio showing positive returns. Stay invested for long-term growth.")
+                            elif total_gain_loss_pct > -5:
+                                st.warning("⚖️ Portfolio slightly negative. Monitor closely and consider rebalancing.")
+                            else:
+                                st.error("🔍 Portfolio underperforming. Review holdings and consider strategic changes.")
+                    
+                    else:
+                        st.error(f"Performance analysis error: {performance_analysis.get('error', 'Unknown error')}")
+                
+                else:
+                    st.info("💡 Install investment_performance_agent for advanced portfolio analysis")
         
         else:
             st.info("Add some positions to see portfolio analysis")
@@ -1536,9 +1700,14 @@ class IndianStockDashboard:
         
         # Agent status
         if AGENT_AVAILABLE:
-            st.sidebar.success("✅ Agent Available")
+            st.sidebar.success("✅ Market Agent Available")
         else:
-            st.sidebar.warning("⚠️ Agent Import Failed")
+            st.sidebar.warning("⚠️ Market Agent Import Failed")
+        
+        if PERFORMANCE_AGENT_AVAILABLE:
+            st.sidebar.success("✅ Performance Agent Available")
+        else:
+            st.sidebar.warning("⚠️ Performance Agent Import Failed")
 
     def run(self):
         """Main dashboard runner."""
@@ -1587,6 +1756,10 @@ if __name__ == "__main__":
     if not AGENT_AVAILABLE:
         st.error("❌ Could not import IndianStockMarketAgent")
         st.info("Dashboard will work with limited functionality")
+    
+    if not PERFORMANCE_AGENT_AVAILABLE:
+        st.warning("⚠️ Could not import InvestmentPerformanceAgent")
+        st.info("Advanced portfolio analysis will not be available")
     
     # Run dashboard
     dashboard = IndianStockDashboard()
