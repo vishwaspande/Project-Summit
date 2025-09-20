@@ -86,11 +86,22 @@ class InvestmentPerformanceAgent:
                 return sector
         return 'Other'
     
-    def get_current_prices(self, symbols: List[str]) -> Dict[str, float]:
-        """Fetch current prices for given symbols."""
+    def get_current_prices(self, symbols: List[str], dashboard_data: Dict = None) -> Dict[str, float]:
+        """Fetch current prices for given symbols, with option to use dashboard data."""
         prices = {}
         
+        # If dashboard data is provided, use it first (it's already fetched)
+        if dashboard_data:
+            for symbol in symbols:
+                if symbol in dashboard_data and 'error' not in dashboard_data[symbol]:
+                    prices[symbol] = dashboard_data[symbol]['price']
+                    continue
+        
+        # Fallback to fetching prices for symbols not found in dashboard_data
         for symbol in symbols:
+            if symbol in prices:
+                continue  # Already have price from dashboard data
+                
             try:
                 # Handle different asset types
                 if symbol.endswith('.NS'):
@@ -122,24 +133,31 @@ class InvestmentPerformanceAgent:
         
         return prices
     
-    def calculate_total_value(self, portfolio_data: Dict) -> Dict[str, float]:
+    def calculate_total_value(self, portfolio_data: Dict, dashboard_data: Dict = None) -> Dict[str, float]:
         """Calculate total portfolio value metrics."""
         symbols = list(portfolio_data.keys())
-        current_prices = self.get_current_prices(symbols)
+        current_prices = self.get_current_prices(symbols, dashboard_data)
         
         total_invested = 0
         total_current_value = 0
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            avg_price = position['avg_price']
-            current_price = current_prices.get(symbol, avg_price)  # Fallback to avg_price
-            
-            invested = qty * avg_price
-            current_value = qty * current_price
-            
-            total_invested += invested
-            total_current_value += current_value
+            try:
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+                current_price = current_prices.get(symbol, avg_price)  # Fallback to avg_price
+                
+                invested = qty * avg_price
+                current_value = qty * current_price
+                
+                total_invested += invested
+                total_current_value += current_value
+                
+                logger.info(f"{symbol}: qty={qty}, avg={avg_price:.2f}, current={current_price:.2f}, invested={invested:.2f}, current_val={current_value:.2f}")
+                
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error calculating values for {symbol}: {e}")
+                continue
         
         return {
             'total_invested': total_invested,
@@ -147,9 +165,9 @@ class InvestmentPerformanceAgent:
             'net_value': total_current_value - total_invested
         }
     
-    def calculate_gain_loss(self, portfolio_data: Dict) -> Dict[str, float]:
+    def calculate_gain_loss(self, portfolio_data: Dict, dashboard_data: Dict = None) -> Dict[str, float]:
         """Calculate total gain/loss for portfolio."""
-        value_metrics = self.calculate_total_value(portfolio_data)
+        value_metrics = self.calculate_total_value(portfolio_data, dashboard_data)
         
         total_gain_loss = value_metrics['net_value']
         total_gain_loss_pct = (total_gain_loss / value_metrics['total_invested'] * 100) if value_metrics['total_invested'] > 0 else 0
@@ -159,83 +177,91 @@ class InvestmentPerformanceAgent:
             'percentage_gain_loss': total_gain_loss_pct
         }
     
-    def find_best_stock(self, portfolio_data: Dict) -> Optional[PerformanceMetrics]:
+    def find_best_stock(self, portfolio_data: Dict, dashboard_data: Dict = None) -> Optional[PerformanceMetrics]:
         """Find the best performing stock in portfolio."""
         symbols = list(portfolio_data.keys())
-        current_prices = self.get_current_prices(symbols)
+        current_prices = self.get_current_prices(symbols, dashboard_data)
         
         best_performance = float('-inf')
         best_stock = None
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            avg_price = position['avg_price']
-            current_price = current_prices.get(symbol, avg_price)
-            
-            if current_price > 0:
-                percentage_gain = ((current_price - avg_price) / avg_price) * 100
+            try:
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+                current_price = current_prices.get(symbol, avg_price)
                 
-                if percentage_gain > best_performance:
-                    best_performance = percentage_gain
+                if current_price > 0 and avg_price > 0:
+                    percentage_gain = ((current_price - avg_price) / avg_price) * 100
                     
-                    invested_amount = qty * avg_price
-                    current_value = qty * current_price
-                    
-                    best_stock = PerformanceMetrics(
-                        symbol=symbol,
-                        quantity=qty,
-                        avg_cost=avg_price,
-                        current_price=current_price,
-                        invested_amount=invested_amount,
-                        current_value=current_value,
-                        absolute_gain_loss=current_value - invested_amount,
-                        percentage_gain_loss=percentage_gain,
-                        weight_in_portfolio=0,  # Will be calculated later
-                        sector=self.get_sector(symbol),
-                        asset_type=position.get('type', 'Stock')
-                    )
+                    if percentage_gain > best_performance:
+                        best_performance = percentage_gain
+                        
+                        invested_amount = qty * avg_price
+                        current_value = qty * current_price
+                        
+                        best_stock = PerformanceMetrics(
+                            symbol=symbol,
+                            quantity=qty,
+                            avg_cost=avg_price,
+                            current_price=current_price,
+                            invested_amount=invested_amount,
+                            current_value=current_value,
+                            absolute_gain_loss=current_value - invested_amount,
+                            percentage_gain_loss=percentage_gain,
+                            weight_in_portfolio=0,  # Will be calculated later
+                            sector=self.get_sector(symbol),
+                            asset_type=position.get('type', 'Stock')
+                        )
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing {symbol} for best stock: {e}")
+                continue
         
         return best_stock
     
-    def find_worst_stock(self, portfolio_data: Dict) -> Optional[PerformanceMetrics]:
+    def find_worst_stock(self, portfolio_data: Dict, dashboard_data: Dict = None) -> Optional[PerformanceMetrics]:
         """Find the worst performing stock in portfolio."""
         symbols = list(portfolio_data.keys())
-        current_prices = self.get_current_prices(symbols)
+        current_prices = self.get_current_prices(symbols, dashboard_data)
         
         worst_performance = float('inf')
         worst_stock = None
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            avg_price = position['avg_price']
-            current_price = current_prices.get(symbol, avg_price)
-            
-            if current_price > 0:
-                percentage_gain = ((current_price - avg_price) / avg_price) * 100
+            try:
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+                current_price = current_prices.get(symbol, avg_price)
                 
-                if percentage_gain < worst_performance:
-                    worst_performance = percentage_gain
+                if current_price > 0 and avg_price > 0:
+                    percentage_gain = ((current_price - avg_price) / avg_price) * 100
                     
-                    invested_amount = qty * avg_price
-                    current_value = qty * current_price
-                    
-                    worst_stock = PerformanceMetrics(
-                        symbol=symbol,
-                        quantity=qty,
-                        avg_cost=avg_price,
-                        current_price=current_price,
-                        invested_amount=invested_amount,
-                        current_value=current_value,
-                        absolute_gain_loss=current_value - invested_amount,
-                        percentage_gain_loss=percentage_gain,
-                        weight_in_portfolio=0,  # Will be calculated later
-                        sector=self.get_sector(symbol),
-                        asset_type=position.get('type', 'Stock')
-                    )
+                    if percentage_gain < worst_performance:
+                        worst_performance = percentage_gain
+                        
+                        invested_amount = qty * avg_price
+                        current_value = qty * current_price
+                        
+                        worst_stock = PerformanceMetrics(
+                            symbol=symbol,
+                            quantity=qty,
+                            avg_cost=avg_price,
+                            current_price=current_price,
+                            invested_amount=invested_amount,
+                            current_value=current_value,
+                            absolute_gain_loss=current_value - invested_amount,
+                            percentage_gain_loss=percentage_gain,
+                            weight_in_portfolio=0,  # Will be calculated later
+                            sector=self.get_sector(symbol),
+                            asset_type=position.get('type', 'Stock')
+                        )
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing {symbol} for worst stock: {e}")
+                continue
         
         return worst_stock
     
-    def calculate_diversity(self, portfolio_data: Dict) -> float:
+    def calculate_diversity(self, portfolio_data: Dict, dashboard_data: Dict = None) -> float:
         """Calculate portfolio diversity score (0-100)."""
         if not portfolio_data:
             return 0.0
@@ -244,17 +270,21 @@ class InvestmentPerformanceAgent:
         sector_allocation = {}
         total_value = 0
         symbols = list(portfolio_data.keys())
-        current_prices = self.get_current_prices(symbols)
+        current_prices = self.get_current_prices(symbols, dashboard_data)
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            avg_price = position['avg_price']
-            current_price = current_prices.get(symbol, avg_price)
-            current_value = qty * current_price
-            
-            sector = self.get_sector(symbol)
-            sector_allocation[sector] = sector_allocation.get(sector, 0) + current_value
-            total_value += current_value
+            try:
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+                current_price = current_prices.get(symbol, avg_price)
+                current_value = qty * current_price
+                
+                sector = self.get_sector(symbol)
+                sector_allocation[sector] = sector_allocation.get(sector, 0) + current_value
+                total_value += current_value
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing {symbol} for diversity: {e}")
+                continue
         
         if total_value == 0:
             return 0.0
@@ -275,13 +305,13 @@ class InvestmentPerformanceAgent:
         
         return min(100, max(0, diversity_score))
     
-    def assess_risk_level(self, portfolio_data: Dict) -> Tuple[str, Dict[str, float]]:
+    def assess_risk_level(self, portfolio_data: Dict, dashboard_data: Dict = None) -> Tuple[str, Dict[str, float]]:
         """Assess portfolio risk level and return detailed metrics."""
         if not portfolio_data:
             return "LOW", {}
         
         symbols = list(portfolio_data.keys())
-        current_prices = self.get_current_prices(symbols)
+        current_prices = self.get_current_prices(symbols, dashboard_data)
         
         # Risk metrics
         total_value = 0
@@ -289,18 +319,22 @@ class InvestmentPerformanceAgent:
         high_risk_allocation = 0  # Small cap, sectoral funds, etc.
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            avg_price = position['avg_price']
-            current_price = current_prices.get(symbol, avg_price)
-            current_value = qty * current_price
-            total_value += current_value
-            
-            sector = self.get_sector(symbol)
-            sector_concentration[sector] = sector_concentration.get(sector, 0) + current_value
-            
-            # Identify high-risk assets
-            if sector in ['Small Cap Funds', 'Sectoral Funds', 'Metals', 'Commodity ETFs']:
-                high_risk_allocation += current_value
+            try:
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+                current_price = current_prices.get(symbol, avg_price)
+                current_value = qty * current_price
+                total_value += current_value
+                
+                sector = self.get_sector(symbol)
+                sector_concentration[sector] = sector_concentration.get(sector, 0) + current_value
+                
+                # Identify high-risk assets
+                if sector in ['Small Cap Funds', 'Sectoral Funds', 'Metals', 'Commodity ETFs']:
+                    high_risk_allocation += current_value
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing {symbol} for risk assessment: {e}")
+                continue
         
         if total_value == 0:
             return "LOW", {}
@@ -391,7 +425,7 @@ class InvestmentPerformanceAgent:
         
         return recommendations
 
-def analyze_portfolio_performance(portfolio_data: Dict) -> Dict:
+def analyze_portfolio_performance(portfolio_data: Dict, dashboard_data: Dict = None) -> Dict:
     """
     Main function to analyze portfolio performance.
     
@@ -424,28 +458,32 @@ def analyze_portfolio_performance(portfolio_data: Dict) -> Dict:
         agent = InvestmentPerformanceAgent()
         
         # Calculate all metrics
-        total_value_metrics = agent.calculate_total_value(portfolio_data)
-        gain_loss_metrics = agent.calculate_gain_loss(portfolio_data)
-        best_performer = agent.find_best_stock(portfolio_data)
-        worst_performer = agent.find_worst_stock(portfolio_data)
-        diversity_score = agent.calculate_diversity(portfolio_data)
-        risk_level, risk_metrics = agent.assess_risk_level(portfolio_data)
+        total_value_metrics = agent.calculate_total_value(portfolio_data, dashboard_data)
+        gain_loss_metrics = agent.calculate_gain_loss(portfolio_data, dashboard_data)
+        best_performer = agent.find_best_stock(portfolio_data, dashboard_data)
+        worst_performer = agent.find_worst_stock(portfolio_data, dashboard_data)
+        diversity_score = agent.calculate_diversity(portfolio_data, dashboard_data)
+        risk_level, risk_metrics = agent.assess_risk_level(portfolio_data, dashboard_data)
         
         # Calculate sector allocation for detailed analysis
         symbols = list(portfolio_data.keys())
-        current_prices = agent.get_current_prices(symbols)
+        current_prices = agent.get_current_prices(symbols, dashboard_data)
         sector_allocation = {}
         total_current_value = total_value_metrics['total_current_value']
         
         for symbol, position in portfolio_data.items():
-            qty = position['qty']
-            current_price = current_prices.get(symbol, position['avg_price'])
-            current_value = qty * current_price
-            sector = agent.get_sector(symbol)
-            
-            if total_current_value > 0:
-                weight_pct = (current_value / total_current_value) * 100
-                sector_allocation[sector] = sector_allocation.get(sector, 0) + weight_pct
+            try:
+                qty = float(position['qty'])
+                current_price = current_prices.get(symbol, position['avg_price'])
+                current_value = qty * current_price
+                sector = agent.get_sector(symbol)
+                
+                if total_current_value > 0:
+                    weight_pct = (current_value / total_current_value) * 100
+                    sector_allocation[sector] = sector_allocation.get(sector, 0) + weight_pct
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing {symbol} for sector allocation: {e}")
+                continue
         
         # Create comprehensive analysis
         analysis = PortfolioAnalysis(

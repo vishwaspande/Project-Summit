@@ -1260,7 +1260,8 @@ class IndianStockDashboard:
                     
                     with st.spinner("🔍 Analyzing portfolio performance..."):
                         # Convert session state portfolio to the format expected by the agent
-                        performance_analysis = analyze_portfolio_performance(st.session_state.portfolio)
+                        # Pass the current_data (already fetched) to avoid re-fetching prices
+                        performance_analysis = analyze_portfolio_performance(st.session_state.portfolio, current_data)
                     
                     if 'error' not in performance_analysis:
                         # Create tabs for different analysis views
