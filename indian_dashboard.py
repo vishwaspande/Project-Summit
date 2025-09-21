@@ -1,29 +1,16 @@
 #!/usr/bin/env python3
 """
-Indian Stock Market Dashboard - Complete Working Streamlit Web App
+Investment Performance Agent
 
-Features for Indian Markets:
-- NSE/BSE stock tracking with real-time data
-- Nifty 50 & Sensex monitoring
-- Indian market hours display and status
-- Rupee-denominated analysis
-- Sector-wise analysis (IT, Banking, Pharma, Auto, etc.)
-- Portfolio management with Indian context
-- AI-powered stock analysis
-- Real-time alerts and monitoring
-- Correct mutual fund data from AMFI
+This agent calculates comprehensive portfolio performance metrics including:
+- Total portfolio value and gain/loss
+- Best and worst performing stocks 
+- Portfolio diversity analysis
+- Risk assessment metrics
 
-Setup:
-pip install streamlit plotly yfinance anthropic pandas numpy pytz requests
-export ANTHROPIC_API_KEY="your-key-here"
-
-Run:
-streamlit run indian_dashboard.py
+Designed to work with the Indian stock market dashboard portfolio data.
 """
 
-import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import yfinance as yf
 import anthropic
