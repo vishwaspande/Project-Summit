@@ -1272,27 +1272,66 @@ class IndianStockDashboard:
                         ])
                         
                         with perf_tab1:
+                            # Advanced metrics quick view
+                            advanced_metrics = performance_analysis.get('advanced_metrics')
+                            if advanced_metrics:
+                                st.subheader("🎯 Key Performance Indicators")
+                                adv_quick_col1, adv_quick_col2, adv_quick_col3, adv_quick_col4 = st.columns(4)
+
+                                with adv_quick_col1:
+                                    sharpe = advanced_metrics.get('sharpe_ratio', 0)
+                                    st.metric(
+                                        "Sharpe Ratio",
+                                        f"{sharpe:.3f}",
+                                        help="Risk-adjusted return"
+                                    )
+
+                                with adv_quick_col2:
+                                    sortino = advanced_metrics.get('sortino_ratio', 0)
+                                    st.metric(
+                                        "Sortino Ratio",
+                                        f"{sortino:.3f}",
+                                        help="Downside risk-adjusted return"
+                                    )
+
+                                with adv_quick_col3:
+                                    alpha = advanced_metrics.get('alpha', 0)
+                                    st.metric(
+                                        "Alpha",
+                                        f"{alpha:+.2%}",
+                                        help="Excess return vs benchmark"
+                                    )
+
+                                with adv_quick_col4:
+                                    beta = advanced_metrics.get('beta', 1.0)
+                                    st.metric(
+                                        "Beta",
+                                        f"{beta:.3f}",
+                                        help="Market sensitivity"
+                                    )
+
                             # Performance metrics
+                            st.subheader("📊 Portfolio Overview")
                             col1, col2, col3 = st.columns(3)
-                            
+
                             with col1:
                                 diversity_score = performance_analysis['diversity_score']
                                 diversity_color = "🟢" if diversity_score > 70 else "🟡" if diversity_score > 40 else "🔴"
                                 st.metric("Diversity Score", f"{diversity_score:.1f}/100", help="Higher is better diversified")
                                 st.write(f"{diversity_color} Diversification Level")
-                            
+
                             with col2:
                                 risk_level = performance_analysis['risk_assessment']['level']
                                 risk_color = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}.get(risk_level, "⚪")
                                 st.metric("Risk Level", risk_level)
                                 st.write(f"{risk_color} Risk Assessment")
-                            
+
                             with col3:
                                 if performance_analysis.get('best_performer'):
                                     bp = performance_analysis['best_performer']
                                     st.metric(
-                                        "Best Performer", 
-                                        bp['symbol'], 
+                                        "Best Performer",
+                                        bp['symbol'],
                                         f"{bp['gain_loss_pct']:+.1f}%",
                                         delta_color="normal"
                                     )
@@ -1330,53 +1369,184 @@ class IndianStockDashboard:
                                 st.plotly_chart(fig_pie, use_container_width=True)
                         
                         with perf_tab2:
-                            # Risk Analysis
-                            st.subheader("⚠️ Risk Metrics")
-                            
+                            # Advanced Risk-Adjusted Metrics
+                            st.subheader("📈 Advanced Risk-Adjusted Metrics")
+
+                            advanced_metrics = performance_analysis.get('advanced_metrics')
+                            if advanced_metrics:
+                                # Risk-adjusted performance metrics
+                                adv_col1, adv_col2, adv_col3 = st.columns(3)
+
+                                with adv_col1:
+                                    sharpe = advanced_metrics.get('sharpe_ratio', 0)
+                                    sharpe_color = "🟢" if sharpe > 1.0 else "🟡" if sharpe > 0.5 else "🔴"
+                                    st.metric(
+                                        "Sharpe Ratio",
+                                        f"{sharpe:.3f}",
+                                        help="Risk-adjusted return. >1.0 is good, >2.0 is excellent"
+                                    )
+                                    st.write(f"{sharpe_color} {'Excellent' if sharpe > 2.0 else 'Good' if sharpe > 1.0 else 'Fair' if sharpe > 0.5 else 'Poor'}")
+
+                                    alpha = advanced_metrics.get('alpha', 0)
+                                    alpha_color = "🟢" if alpha > 0.02 else "🟡" if alpha > -0.02 else "🔴"
+                                    st.metric(
+                                        "Alpha",
+                                        f"{alpha:+.2%}",
+                                        help="Excess return vs benchmark. >0 means outperforming"
+                                    )
+                                    st.write(f"{alpha_color} {'Outperforming' if alpha > 0 else 'Underperforming'}")
+
+                                with adv_col2:
+                                    sortino = advanced_metrics.get('sortino_ratio', 0)
+                                    sortino_color = "🟢" if sortino > 1.5 else "🟡" if sortino > 0.75 else "🔴"
+                                    st.metric(
+                                        "Sortino Ratio",
+                                        f"{sortino:.3f}",
+                                        help="Downside risk-adjusted return. Higher is better"
+                                    )
+                                    st.write(f"{sortino_color} {'Excellent' if sortino > 1.5 else 'Good' if sortino > 0.75 else 'Fair'}")
+
+                                    beta = advanced_metrics.get('beta', 1.0)
+                                    beta_color = "🟢" if 0.8 <= beta <= 1.2 else "🟡" if 0.6 <= beta <= 1.4 else "🔴"
+                                    st.metric(
+                                        "Beta",
+                                        f"{beta:.3f}",
+                                        help="Market sensitivity. 1.0 = same as market"
+                                    )
+                                    st.write(f"{beta_color} {'High volatility' if beta > 1.3 else 'Low volatility' if beta < 0.7 else 'Market aligned'}")
+
+                                with adv_col3:
+                                    info_ratio = advanced_metrics.get('information_ratio', 0)
+                                    info_color = "🟢" if info_ratio > 0.5 else "🟡" if info_ratio > 0 else "🔴"
+                                    st.metric(
+                                        "Information Ratio",
+                                        f"{info_ratio:.3f}",
+                                        help="Active management skill. >0.5 is good"
+                                    )
+                                    st.write(f"{info_color} {'Good active mgmt' if info_ratio > 0.5 else 'Active mgmt' if info_ratio > 0 else 'Poor active mgmt'}")
+
+                                    volatility = advanced_metrics.get('volatility', 0)
+                                    vol_color = "🟢" if volatility < 0.15 else "🟡" if volatility < 0.25 else "🔴"
+                                    st.metric(
+                                        "Annual Volatility",
+                                        f"{volatility:.1%}",
+                                        help="Price volatility. Lower is more stable"
+                                    )
+                                    st.write(f"{vol_color} {'Low risk' if volatility < 0.15 else 'Moderate risk' if volatility < 0.25 else 'High risk'}")
+
+                                # Additional risk metrics
+                                st.subheader("🛡️ Risk Management Metrics")
+                                risk_col1, risk_col2, risk_col3 = st.columns(3)
+
+                                with risk_col1:
+                                    max_dd = advanced_metrics.get('max_drawdown', 0)
+                                    dd_color = "🟢" if max_dd < 0.10 else "🟡" if max_dd < 0.20 else "🔴"
+                                    st.metric(
+                                        "Max Drawdown",
+                                        f"{max_dd:.1%}",
+                                        help="Largest peak-to-trough decline"
+                                    )
+                                    st.write(f"{dd_color} {'Low risk' if max_dd < 0.10 else 'Moderate risk' if max_dd < 0.20 else 'High risk'}")
+
+                                with risk_col2:
+                                    var_95 = advanced_metrics.get('var_95', 0)
+                                    var_color = "🟢" if var_95 < 0.02 else "🟡" if var_95 < 0.04 else "🔴"
+                                    st.metric(
+                                        "VaR (95%)",
+                                        f"{var_95:.1%}",
+                                        help="Potential daily loss at 95% confidence"
+                                    )
+                                    st.write(f"{var_color} Value at Risk")
+
+                                with risk_col3:
+                                    tracking_error = advanced_metrics.get('tracking_error', 0)
+                                    te_color = "🟢" if tracking_error < 0.05 else "🟡" if tracking_error < 0.10 else "🔴"
+                                    st.metric(
+                                        "Tracking Error",
+                                        f"{tracking_error:.1%}",
+                                        help="Standard deviation of excess returns"
+                                    )
+                                    st.write(f"{te_color} {'Low tracking error' if tracking_error < 0.05 else 'Moderate' if tracking_error < 0.10 else 'High tracking error'}")
+
+                                # Performance interpretation
+                                st.subheader("📊 Performance Interpretation")
+                                interpretation_text = []
+
+                                if sharpe > 1.5:
+                                    interpretation_text.append("🏆 **Excellent risk-adjusted returns** - Portfolio shows strong performance relative to risk taken")
+                                elif sharpe < 0.5:
+                                    interpretation_text.append("⚠️ **Low risk-adjusted returns** - Consider reviewing strategy or reducing risk")
+
+                                if sortino > 1.0:
+                                    interpretation_text.append("✅ **Good downside protection** - Portfolio handles market downturns well")
+                                elif sortino < 0.5:
+                                    interpretation_text.append("📉 **Poor downside protection** - Portfolio vulnerable during market declines")
+
+                                if alpha > 0.02:
+                                    interpretation_text.append("🎯 **Alpha generation** - Portfolio consistently outperforms the market")
+                                elif alpha < -0.02:
+                                    interpretation_text.append("📊 **Underperforming market** - Consider index funds or strategy review")
+
+                                if max_dd > 0.25:
+                                    interpretation_text.append("🚨 **High maximum drawdown** - Portfolio experienced significant losses during downturns")
+
+                                for text in interpretation_text:
+                                    st.markdown(text)
+
+                                if not interpretation_text:
+                                    st.info("📈 Portfolio metrics are within normal ranges. Continue monitoring performance.")
+
+                            else:
+                                st.warning("⚠️ Advanced metrics not available. This requires sufficient historical data (at least 30 days).")
+                                st.info("Advanced metrics include calculations based on portfolio returns vs benchmark performance.")
+
+                            # Basic Risk Analysis (existing code)
+                            st.subheader("⚠️ Basic Risk Assessment")
+
                             risk_metrics = performance_analysis['risk_assessment']['metrics']
                             risk_level = performance_analysis['risk_assessment']['level']
-                            
+
                             # Risk level indicator
                             risk_colors = {"LOW": "#4CAF50", "MEDIUM": "#FF9800", "HIGH": "#F44336"}
                             st.markdown(f"""
-                            <div style="padding: 10px; background-color: {risk_colors.get(risk_level, '#gray')}20; 
+                            <div style="padding: 10px; background-color: {risk_colors.get(risk_level, '#gray')}20;
                                         border-left: 4px solid {risk_colors.get(risk_level, '#gray')}; border-radius: 5px;">
                                 <h4 style="color: {risk_colors.get(risk_level, '#gray')};">Risk Level: {risk_level}</h4>
                             </div>
                             """, unsafe_allow_html=True)
-                            
+
                             # Risk metrics display
                             risk_col1, risk_col2 = st.columns(2)
-                            
+
                             with risk_col1:
                                 st.metric(
-                                    "Max Sector Concentration", 
+                                    "Max Sector Concentration",
                                     f"{risk_metrics.get('max_sector_concentration', 0):.1f}%",
                                     help="Percentage of portfolio in largest sector"
                                 )
                                 st.metric(
-                                    "Number of Positions", 
+                                    "Number of Positions",
                                     int(risk_metrics.get('number_of_positions', 0)),
                                     help="Total number of different investments"
                                 )
-                            
+
                             with risk_col2:
                                 st.metric(
-                                    "High Risk Allocation", 
+                                    "High Risk Allocation",
                                     f"{risk_metrics.get('high_risk_allocation', 0):.1f}%",
                                     help="Percentage in high-risk investments"
                                 )
                                 st.metric(
-                                    "Diversification Ratio", 
+                                    "Diversification Ratio",
                                     f"{risk_metrics.get('diversification_ratio', 0):.2f}",
                                     help="Sectors per position (higher is better)"
                                 )
-                            
+
                             # Risk guidelines
                             st.info("""
                             **Risk Guidelines:**
                             - 🟢 **LOW**: Well diversified, stable investments
-                            - 🟡 **MEDIUM**: Moderate concentration, balanced risk  
+                            - 🟡 **MEDIUM**: Moderate concentration, balanced risk
                             - 🔴 **HIGH**: Concentrated positions, high volatility assets
                             """)
                         
