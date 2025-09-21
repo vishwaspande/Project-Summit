@@ -34,9 +34,24 @@ import json
 import os
 import numpy as np
 from typing import Dict, List
+from dataclasses import dataclass
 import warnings
 import requests
 warnings.filterwarnings('ignore')
+
+@dataclass
+class AdvancedRiskMetrics:
+    """Structure for advanced risk-adjusted performance metrics."""
+    sharpe_ratio: float
+    sortino_ratio: float
+    alpha: float
+    beta: float
+    information_ratio: float
+    volatility: float
+    downside_deviation: float
+    max_drawdown: float
+    var_95: float  # Value at Risk at 95% confidence
+    tracking_error: float
 
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
@@ -51,7 +66,7 @@ try:
     AGENT_AVAILABLE = True
 except ImportError:
     try:
-        from indian_stock_agent import IndianStockMarketAgent
+        from indian_stock_market_agent import IndianStockMarketAgent
         AGENT_AVAILABLE = True
     except ImportError:
         AGENT_AVAILABLE = False
@@ -1253,7 +1268,10 @@ class IndianStockDashboard:
                     )
                     fig.update_layout(height=400)
                     st.plotly_chart(fig, use_container_width=True)
-                
+
+                # Risk Metrics Info
+                st.info("📈 **For detailed Risk-Adjusted Performance Metrics**, visit the dedicated **'📈 Risk Metrics'** tab above!")
+
                 # Advanced Portfolio Performance Analysis
                 if PERFORMANCE_AGENT_AVAILABLE:
                     st.subheader("🎯 Advanced Portfolio Analysis")
@@ -1497,6 +1515,439 @@ class IndianStockDashboard:
                 return region
         return 'Other'
 
+    def calculate_sharpe_ratio(self, returns: pd.Series, risk_free_rate: float = 0.065) -> float:
+        """
+        Calculate Sharpe Ratio.
+        Sharpe Ratio = (Portfolio Return - Risk Free Rate) / Portfolio Volatility
+        """
+        if returns.empty or len(returns) < 2:
+            return 0.0
+
+        # Annualized return
+        annual_return = (1 + returns.mean()) ** 252 - 1
+
+        # Annualized volatility
+        annual_volatility = returns.std() * np.sqrt(252)
+
+        if annual_volatility == 0:
+            return 0.0
+
+        sharpe_ratio = (annual_return - risk_free_rate) / annual_volatility
+        return sharpe_ratio
+
+    def calculate_sortino_ratio(self, returns: pd.Series, risk_free_rate: float = 0.065) -> tuple:
+        """
+        Calculate Sortino Ratio and Downside Deviation.
+        Sortino Ratio = (Portfolio Return - Risk Free Rate) / Downside Deviation
+        """
+        if returns.empty or len(returns) < 2:
+            return 0.0, 0.0
+
+        # Annualized return
+        annual_return = (1 + returns.mean()) ** 252 - 1
+
+        # Calculate downside deviation (volatility of negative returns only)
+        daily_risk_free = (1 + risk_free_rate) ** (1/252) - 1
+        downside_returns = returns[returns < daily_risk_free] - daily_risk_free
+
+        if len(downside_returns) == 0:
+            downside_deviation = 0.0
+        else:
+            downside_deviation = downside_returns.std() * np.sqrt(252)
+
+        if downside_deviation == 0:
+            return float('inf') if annual_return > risk_free_rate else 0.0, 0.0
+
+        sortino_ratio = (annual_return - risk_free_rate) / downside_deviation
+        return sortino_ratio, downside_deviation
+
+    def calculate_max_drawdown(self, returns: pd.Series) -> float:
+        """Calculate Maximum Drawdown."""
+        if returns.empty:
+            return 0.0
+
+        # Calculate cumulative returns
+        cumulative = (1 + returns).cumprod()
+
+        # Calculate running maximum
+        running_max = cumulative.expanding().max()
+
+        # Calculate drawdown
+        drawdown = (cumulative - running_max) / running_max
+
+        # Return maximum drawdown (most negative value)
+        max_drawdown = drawdown.min()
+
+        return abs(max_drawdown)
+
+    def calculate_alpha_beta(self, portfolio_returns: pd.Series, benchmark_returns: pd.Series) -> tuple:
+        """
+        Calculate Alpha and Beta relative to benchmark.
+        Beta = Covariance(Portfolio, Benchmark) / Variance(Benchmark)
+        Alpha = Portfolio Return - (Risk Free Rate + Beta * (Benchmark Return - Risk Free Rate))
+        """
+        if portfolio_returns.empty or benchmark_returns.empty:
+            return 0.0, 1.0
+
+        # Align returns to common dates
+        common_dates = portfolio_returns.index.intersection(benchmark_returns.index)
+        if len(common_dates) < 30:
+            return 0.0, 1.0
+
+        port_returns = portfolio_returns.loc[common_dates]
+        bench_returns = benchmark_returns.loc[common_dates]
+
+        # Calculate Beta
+        covariance = np.cov(port_returns, bench_returns)[0, 1]
+        benchmark_variance = np.var(bench_returns)
+
+        if benchmark_variance == 0:
+            beta = 1.0
+        else:
+            beta = covariance / benchmark_variance
+
+        # Calculate Alpha (annualized)
+        portfolio_annual_return = (1 + port_returns.mean()) ** 252 - 1
+        benchmark_annual_return = (1 + bench_returns.mean()) ** 252 - 1
+
+        expected_return = 0.065 + beta * (benchmark_annual_return - 0.065)  # 6.5% risk-free rate
+        alpha = portfolio_annual_return - expected_return
+
+        return alpha, beta
+
+    def calculate_information_ratio(self, portfolio_returns: pd.Series, benchmark_returns: pd.Series) -> tuple:
+        """
+        Calculate Information Ratio and Tracking Error.
+        Information Ratio = Active Return / Tracking Error
+        """
+        if portfolio_returns.empty or benchmark_returns.empty:
+            return 0.0, 0.0
+
+        # Align series by index (in case of different lengths)
+        min_len = min(len(portfolio_returns), len(benchmark_returns))
+        port_returns = portfolio_returns.iloc[-min_len:].reset_index(drop=True)
+        bench_returns = benchmark_returns.iloc[-min_len:].reset_index(drop=True)
+
+        if len(port_returns) < 30:  # Need sufficient data
+            return 0.0, 0.0
+
+        # Calculate active returns (portfolio - benchmark)
+        active_returns = port_returns - bench_returns
+
+        # Calculate tracking error (standard deviation of active returns)
+        tracking_error = active_returns.std() * np.sqrt(252)  # Annualized
+
+        if tracking_error == 0:
+            return 0.0, tracking_error
+
+        # Calculate annualized active return
+        active_return = (1 + active_returns.mean()) ** 252 - 1
+
+        # Information Ratio
+        information_ratio = active_return / tracking_error
+
+        return information_ratio, tracking_error
+
+    def calculate_var_95(self, returns: pd.Series) -> float:
+        """Calculate Value at Risk at 95% confidence level."""
+        if returns.empty or len(returns) < 20:
+            return 0.0
+
+        # Sort returns and find 5th percentile
+        var_95 = np.percentile(returns, 5)
+
+        return abs(var_95)
+
+    def render_risk_metrics(self):
+        """Render dedicated risk metrics analysis section."""
+        st.header("📈 Risk-Adjusted Performance Metrics")
+
+        if not st.session_state.portfolio:
+            st.info("📊 Add positions to your portfolio to see risk-adjusted performance metrics")
+            st.markdown("""
+            ### 🎯 Available Risk Metrics
+
+            Once you add positions to your portfolio, you'll see:
+
+            **Core Risk Metrics:**
+            - **Sharpe Ratio**: Risk-adjusted returns (measures excess return per unit of risk)
+            - **Sortino Ratio**: Downside risk-focused performance metric
+            - **Maximum Drawdown**: Largest portfolio decline from peak to trough
+
+            **Risk Assessment:**
+            - **VaR (95%)**: Value at Risk - potential daily loss at 95% confidence level
+            - **Annual Volatility**: Portfolio volatility measured annually
+
+            **Benchmark-Relative Metrics:**
+            - **Alpha vs NIFTY**: Excess returns over NIFTY 50 benchmark
+            - **Beta**: Market sensitivity (1.0 = same volatility as market)
+            - **Information Ratio**: Active management skill measure
+
+            All metrics are calculated using actual historical market data from yfinance and AMFI APIs.
+            """)
+            return
+
+        # Get portfolio data
+        symbols = list(st.session_state.portfolio.keys())
+
+        with st.spinner("📊 Fetching portfolio data for risk analysis..."):
+            current_data = self.get_stock_data(symbols)
+
+        # Prepare performance data
+        perf_data = []
+        for symbol, position in st.session_state.portfolio.items():
+            if symbol in current_data and 'error' not in current_data[symbol]:
+                current_price = current_data[symbol]['price']
+                qty = float(position['qty'])
+                avg_price = float(position['avg_price'])
+
+                invested = qty * avg_price
+                current_value = qty * current_price
+                pnl_pct = ((current_value - invested) / invested * 100) if invested > 0 else 0
+
+                perf_data.append({
+                    'Investment': symbol,
+                    'P&L %': pnl_pct,
+                    'Invested': invested,
+                    'Current Value': current_value
+                })
+
+        if not perf_data:
+            st.error("❌ Unable to fetch portfolio data for risk analysis")
+            return
+
+        try:
+            # Fetch actual historical data for portfolio holdings
+            st.subheader("🔍 Fetching Historical Data")
+            progress_bar = st.progress(0)
+            all_returns = []
+            data_sources = []
+
+            for i, item in enumerate(perf_data):
+                symbol = item['Investment']
+                progress_bar.progress((i + 1) / len(perf_data))
+
+                try:
+                    # Handle mutual funds vs stocks
+                    if symbol.startswith('MF'):
+                        # For mutual funds, get historical NAV data
+                        fund_code = symbol.replace('MF', '')
+                        fund_hist = self.get_fund_historical_data(fund_code, days=365)
+
+                        if fund_hist and 'error' not in fund_hist and 'historical_data' in fund_hist:
+                            nav_data = fund_hist['historical_data']
+                            if len(nav_data) > 30:
+                                # Convert to pandas Series and calculate returns
+                                navs = [float(entry['nav']) for entry in nav_data[::-1]]  # Reverse to chronological order
+                                nav_series = pd.Series(navs)
+                                daily_returns = nav_series.pct_change().dropna()
+                                all_returns.extend(daily_returns.tolist())
+                                data_sources.append(f"{symbol}: {len(daily_returns)} days (AMFI)")
+
+                    else:
+                        # For stocks, use yfinance
+                        ticker_symbol = f"{symbol}.NS" if not symbol.endswith('.NS') else symbol
+                        ticker = yf.Ticker(ticker_symbol)
+
+                        # Get 1 year of historical data
+                        hist_data = ticker.history(period="1y")
+
+                        if not hist_data.empty and len(hist_data) > 30:
+                            # Calculate daily returns
+                            daily_returns = hist_data['Close'].pct_change().dropna()
+                            all_returns.extend(daily_returns.tolist())
+                            data_sources.append(f"{symbol}: {len(daily_returns)} days (yfinance)")
+
+                except Exception as e:
+                    st.warning(f"Could not fetch historical data for {symbol}: {str(e)}")
+                    continue
+
+            progress_bar.empty()
+
+            # Show data collection summary
+            with st.expander("📋 Data Collection Summary"):
+                if data_sources:
+                    for source in data_sources:
+                        st.text(f"✅ {source}")
+                    st.success(f"Total data points: {len(all_returns)} daily returns")
+                else:
+                    st.error("❌ No historical data collected")
+
+            if len(all_returns) >= 30:  # Need minimum data
+                returns_series = pd.Series(all_returns)
+
+                # Calculate all metrics
+                st.subheader("⚡ Calculating Risk Metrics")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.info("🧮 Computing core risk metrics...")
+                with col2:
+                    st.info("📊 Fetching benchmark data (NIFTY 50)...")
+
+                # Core metrics
+                sharpe = self.calculate_sharpe_ratio(returns_series)
+                sortino, downside_dev = self.calculate_sortino_ratio(returns_series)
+                max_dd = self.calculate_max_drawdown(returns_series)
+                var_95 = self.calculate_var_95(returns_series)
+
+                # Get benchmark data for alpha, beta, and information ratio
+                alpha, beta, information_ratio, tracking_error = 0.0, 1.0, 0.0, 0.0
+                benchmark_available = False
+
+                try:
+                    # Use NIFTY 50 as benchmark
+                    nifty_ticker = yf.Ticker("^NSEI")
+                    nifty_hist = nifty_ticker.history(period="1y")
+
+                    if not nifty_hist.empty and len(nifty_hist) > 30:
+                        nifty_returns = nifty_hist['Close'].pct_change().dropna()
+
+                        # Calculate alpha and beta
+                        alpha, beta = self.calculate_alpha_beta(returns_series, nifty_returns)
+
+                        # Calculate information ratio
+                        information_ratio, tracking_error = self.calculate_information_ratio(returns_series, nifty_returns)
+                        benchmark_available = True
+
+                except Exception as e:
+                    st.warning(f"Could not fetch benchmark data: {str(e)}")
+
+                # Display results
+                st.subheader("📊 Risk-Adjusted Performance Results")
+
+                # Core Risk Metrics Section
+                st.markdown("### 🎯 Core Risk Metrics")
+                metric_row1 = st.columns(3)
+
+                with metric_row1[0]:
+                    sharpe_color = "🟢" if sharpe > 1.0 else "🟡" if sharpe > 0.5 else "🔴"
+                    st.metric("Sharpe Ratio", f"{sharpe:.3f}", help="Risk-adjusted returns (>1.0 is good)")
+                    st.markdown(f"{sharpe_color} **{'Excellent' if sharpe > 1.5 else 'Good' if sharpe > 1.0 else 'Fair' if sharpe > 0.5 else 'Poor'}**")
+
+                with metric_row1[1]:
+                    sortino_color = "🟢" if sortino > 1.5 else "🟡" if sortino > 1.0 else "🔴"
+                    sortino_display = min(sortino, 999) if sortino != float('inf') else 999
+                    st.metric("Sortino Ratio", f"{sortino_display:.3f}", help="Downside risk-adjusted returns")
+                    st.markdown(f"{sortino_color} **{'Excellent' if sortino > 2.0 else 'Good' if sortino > 1.0 else 'Poor'}**")
+
+                with metric_row1[2]:
+                    dd_color = "🟢" if max_dd < 0.10 else "🟡" if max_dd < 0.20 else "🔴"
+                    st.metric("Max Drawdown", f"{max_dd:.2%}", help="Maximum portfolio decline")
+                    st.markdown(f"{dd_color} **{'Low Risk' if max_dd < 0.10 else 'Moderate' if max_dd < 0.20 else 'High Risk'}**")
+
+                # Risk Assessment Section
+                st.markdown("### ⚠️ Risk Assessment")
+                metric_row2 = st.columns(3)
+
+                with metric_row2[0]:
+                    var_color = "🟢" if var_95 < 0.02 else "🟡" if var_95 < 0.05 else "🔴"
+                    st.metric("VaR (95%)", f"{var_95:.2%}", help="Value at Risk - potential daily loss")
+                    st.markdown(f"{var_color} **{'Low Risk' if var_95 < 0.02 else 'Moderate' if var_95 < 0.05 else 'High Risk'}**")
+
+                with metric_row2[1]:
+                    volatility = returns_series.std() * np.sqrt(252)
+                    vol_color = "🟢" if volatility < 0.15 else "🟡" if volatility < 0.25 else "🔴"
+                    st.metric("Annual Volatility", f"{volatility:.2%}", help="Portfolio volatility (annualized)")
+                    st.markdown(f"{vol_color} **{'Low' if volatility < 0.15 else 'Moderate' if volatility < 0.25 else 'High'}**")
+
+                with metric_row2[2]:
+                    total_return = sum(item['P&L %'] for item in perf_data) / len(perf_data)
+                    return_color = "🟢" if total_return > 5 else "🟡" if total_return > 0 else "🔴"
+                    st.metric("Avg Return", f"{total_return:.2f}%", help="Average portfolio return")
+                    st.markdown(f"{return_color} **{'Profit' if total_return > 0 else 'Loss'}**")
+
+                # Benchmark-Relative Metrics Section
+                if benchmark_available:
+                    st.markdown("### 📊 Benchmark-Relative Metrics (vs NIFTY 50)")
+                    metric_row3 = st.columns(3)
+
+                    with metric_row3[0]:
+                        alpha_color = "🟢" if alpha > 0.02 else "🟡" if alpha > 0 else "🔴"
+                        alpha_display = f"{alpha:.3%}" if abs(alpha) < 1 else f"{alpha:.4f}"
+                        st.metric("Alpha", alpha_display, help="Excess returns over benchmark")
+                        st.markdown(f"{alpha_color} **{'Outperforming' if alpha > 0.01 else 'Neutral' if alpha > -0.01 else 'Underperforming'}**")
+
+                    with metric_row3[1]:
+                        beta_color = "🟢" if 0.8 <= beta <= 1.2 else "🟡" if 0.6 <= beta <= 1.4 else "🔴"
+                        st.metric("Beta", f"{beta:.3f}", help="Market sensitivity (1.0 = same as market)")
+                        st.markdown(f"{beta_color} **{'Defensive' if beta < 0.8 else 'Market-like' if beta <= 1.2 else 'Aggressive'}**")
+
+                    with metric_row3[2]:
+                        ir_color = "🟢" if information_ratio > 0.5 else "🟡" if information_ratio > 0 else "🔴"
+                        ir_display = f"{information_ratio:.3f}" if abs(information_ratio) < 10 else f"{information_ratio:.2f}"
+                        st.metric("Information Ratio", ir_display, help="Active management skill measure")
+                        st.markdown(f"{ir_color} **{'Excellent' if information_ratio > 0.75 else 'Good' if information_ratio > 0.25 else 'Poor'}**")
+                else:
+                    st.warning("⚠️ Benchmark data unavailable - showing portfolio-only metrics")
+
+                # Detailed Interpretation Guide
+                with st.expander("📚 Detailed Metrics Guide & Interpretation"):
+                    st.markdown("""
+                    ## 🎯 Core Risk Metrics
+
+                    **Sharpe Ratio**: Measures risk-adjusted returns
+                    - **Formula**: (Portfolio Return - Risk-Free Rate) / Portfolio Volatility
+                    - **> 2.0**: Outstanding performance
+                    - **1.5-2.0**: Excellent risk-adjusted returns
+                    - **1.0-1.5**: Good performance
+                    - **0.5-1.0**: Fair returns for the risk taken
+                    - **< 0.5**: Poor risk-adjusted performance
+
+                    **Sortino Ratio**: Focuses on downside risk only
+                    - **Formula**: (Portfolio Return - Risk-Free Rate) / Downside Deviation
+                    - **> 2.0**: Excellent downside protection
+                    - **1.0-2.0**: Good downside risk management
+                    - **< 1.0**: High downside risk exposure
+
+                    **Maximum Drawdown**: Largest portfolio decline
+                    - **< 10%**: Conservative, low-risk portfolio
+                    - **10-20%**: Moderate risk tolerance
+                    - **> 20%**: High-risk, aggressive strategy
+
+                    ## ⚠️ Risk Assessment
+
+                    **VaR (95%)**: Potential daily loss at 95% confidence
+                    - **< 2%**: Low daily risk exposure
+                    - **2-5%**: Moderate daily risk
+                    - **> 5%**: High daily risk - consider position sizing
+
+                    **Annual Volatility**: Price movement intensity
+                    - **< 15%**: Stable, low-volatility portfolio
+                    - **15-25%**: Moderate volatility
+                    - **> 25%**: High volatility - expect large price swings
+
+                    ## 📊 Benchmark-Relative Metrics
+
+                    **Alpha vs NIFTY 50**: Excess returns over market
+                    - **> 2%**: Consistently outperforming the market
+                    - **0-2%**: Slight market outperformance
+                    - **-2% to 0%**: Slight underperformance
+                    - **< -2%**: Significant underperformance
+
+                    **Beta**: Market sensitivity measure
+                    - **< 0.8**: Defensive portfolio (less volatile than market)
+                    - **0.8-1.2**: Market-like behavior
+                    - **> 1.2**: Aggressive portfolio (more volatile than market)
+
+                    **Information Ratio**: Active management effectiveness
+                    - **> 0.75**: Excellent active management skill
+                    - **0.25-0.75**: Good skill demonstration
+                    - **0-0.25**: Limited active management value
+                    - **< 0**: Poor active management
+
+                    ---
+                    *All calculations use actual historical market data. Risk-free rate: 6.5% (Indian government bonds)*
+                    """)
+
+            else:
+                st.error("❌ Insufficient historical data to calculate metrics")
+                st.info(f"📊 Found {len(all_returns)} data points. Need at least 30 for reliable calculations.")
+
+        except Exception as e:
+            st.error(f"Error in risk analysis: {e}")
+            st.info("📊 Please check your portfolio positions and try again")
+
     def render_global_indices(self):
         """Render global indices section."""
         st.header("🌍 Global Market Indices")
@@ -1720,11 +2171,12 @@ class IndianStockDashboard:
             self.render_header()
             
             # Main tabs
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
                 "📊 Market Overview",
-                "📈 Stock Analysis", 
+                "📈 Stock Analysis",
                 "🏦 Mutual Funds/ETFs",
                 "💼 Portfolio",
+                "📈 Risk Metrics",
                 "🌍 Global Markets",
                 "🤖 AI Assistant"
             ])
@@ -1740,11 +2192,14 @@ class IndianStockDashboard:
             
             with tab4:
                 self.render_portfolio()
-            
+
             with tab5:
-                self.render_global_indices()
-            
+                self.render_risk_metrics()
+
             with tab6:
+                self.render_global_indices()
+
+            with tab7:
                 self.render_market_chat()
             
         except Exception as e:
