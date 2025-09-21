@@ -385,7 +385,35 @@ class InvestmentPerformanceAgent:
             risk_level = "LOW"
         
         return risk_level, risk_metrics
-    
+
+    def calculate_sharpe_ratio(self, portfolio_returns: float, volatility: float, risk_free_rate: float = None) -> float:
+        """
+        Calculate Sharpe Ratio (simplified version).
+        Sharpe Ratio = (Portfolio Return - Risk Free Rate) / Portfolio Volatility
+        """
+        if risk_free_rate is None:
+            risk_free_rate = self.risk_free_rate
+
+        if volatility == 0:
+            return 0.0
+
+        sharpe_ratio = (portfolio_returns - risk_free_rate) / volatility
+        return sharpe_ratio
+
+    def calculate_sortino_ratio(self, portfolio_returns: float, downside_volatility: float, risk_free_rate: float = None) -> float:
+        """
+        Calculate Sortino Ratio (simplified version).
+        Sortino Ratio = (Portfolio Return - Risk Free Rate) / Downside Volatility
+        """
+        if risk_free_rate is None:
+            risk_free_rate = self.risk_free_rate
+
+        if downside_volatility == 0:
+            return 0.0
+
+        sortino_ratio = (portfolio_returns - risk_free_rate) / downside_volatility
+        return sortino_ratio
+
     def generate_recommendations(self, analysis: PortfolioAnalysis) -> List[str]:
         """Generate investment recommendations based on portfolio analysis."""
         recommendations = []
