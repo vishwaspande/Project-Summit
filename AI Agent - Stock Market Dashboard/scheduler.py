@@ -16,7 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.executors.asyncio import AsyncIOExecutor
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 import signal
 import sys
@@ -54,7 +54,7 @@ class AgentScheduler:
         try:
             # Configure job stores and executors
             jobstores = {
-                'default': SQLAlchemyJobStore(url='sqlite:///agent_jobs.db')
+                'default': MemoryJobStore()
             }
 
             executors = {
