@@ -336,7 +336,7 @@ class AgentScheduler:
 
         except Exception as e:
             logger.error(f"Error in morning analysis job: {e}")
-            await self.notifications.send_notification(
+            self.notifications.send_notification(
                 f"❌ Morning analysis job failed: {str(e)}",
                 "error"
             )
@@ -476,7 +476,7 @@ class AgentScheduler:
 
         except Exception as e:
             logger.error(f"Error in evening analysis job: {e}")
-            await self.notifications.send_notification(
+            self.notifications.send_notification(
                 f"❌ Evening analysis job failed: {str(e)}",
                 "error"
             )
@@ -512,7 +512,7 @@ class AgentScheduler:
                 # Send alerts if any
                 if alerts:
                     alert_message = "🚨 Market Monitoring Alert:\n" + "\n".join(alerts)
-                    await self.notifications.send_notification(alert_message, "warning")
+                    self.notifications.send_notification(alert_message, "warning")
 
         except Exception as e:
             logger.error(f"Error in periodic monitoring: {e}")
@@ -535,7 +535,7 @@ class AgentScheduler:
                     for symbol, data in result.data.items():
                         message += f"{symbol}: ₹{data['current_price']:.2f} ({data['change_percent']:+.1f}%)\n"
 
-                    await self.notifications.send_notification(message, "info")
+                    self.notifications.send_notification(message, "info")
 
         except Exception as e:
             logger.error(f"Error in one-time analysis {analysis_type}: {e}")
@@ -625,7 +625,7 @@ async def run_scheduled_agent():
 
         # Send startup notification
         if notification_manager.enabled:
-            await notification_manager.send_notification(
+            notification_manager.send_notification(
                 "🚀 Indian Stock Market AI Agent started!\n\n"
                 f"Morning briefings: {config.morning_run_time} IST\n"
                 f"Evening briefings: {config.evening_run_time} IST\n"
