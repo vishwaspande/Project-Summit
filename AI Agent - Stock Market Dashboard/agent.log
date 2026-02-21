@@ -1,0 +1,23 @@
+2026-02-22 01:19:55,516 - config - INFO - Logging configured - Level: INFO, File: agent.log
+2026-02-22 01:19:55,727 - memory - INFO - Database initialized successfully: agent_memory.db
+2026-02-22 01:19:55,727 - notifications - WARNING - Telegram notifications disabled - check bot token and chat ID
+2026-02-22 01:19:55,727 - config - INFO - Enhanced Indian Stock Market Agent initialized successfully
+2026-02-22 01:19:55,727 - config - INFO - Available tools: get_stock_price, get_multiple_stocks, get_stock_fundamentals, get_technical_indicators, get_market_news, get_fii_dii_data, get_usd_inr_rate, check_portfolio, send_alert, save_to_memory, read_from_memory
+2026-02-22 01:20:00,034 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-02-22 01:20:01,059 - yfinance - ERROR - HTTP Error 404: 
+2026-02-22 01:20:02,289 - yfinance - ERROR - $RELIANCE.NS.NS: possibly delisted; no price data found  (period=1d) (Yahoo error = "No data found, symbol may be delisted")
+2026-02-22 01:20:02,781 - yfinance - ERROR - $RELIANCE.NS.NS: possibly delisted; no price data found  (period=1d) (Yahoo error = "No data found, symbol may be delisted")
+2026-02-22 01:20:03,315 - yfinance - ERROR - HTTP Error 404: 
+2026-02-22 01:20:04,541 - yfinance - ERROR - HTTP Error 404: 
+2026-02-22 01:20:05,155 - yfinance - ERROR - $RELIANCE.NS.NS: possibly delisted; no price data found  (period=6mo) (Yahoo error = "No data found, symbol may be delisted")
+2026-02-22 01:20:08,004 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-02-22 01:20:11,094 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-02-22 01:20:19,895 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-02-22 01:20:19,923 - memory - INFO - Stored analysis: stock_analysis for general
+2026-02-22 01:20:51,018 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-02-22 01:20:51,042 - memory - INFO - Stored agent decision: task_completion
+2026-02-22 01:24:40,118 - config - INFO - Logging configured - Level: INFO, File: agent.log
+2026-02-22 01:24:40,554 - memory - INFO - Database initialized successfully: agent_memory.db
+2026-02-22 01:24:40,554 - notifications - WARNING - Telegram notifications disabled - check bot token and chat ID
+2026-02-22 01:24:40,554 - config - INFO - Enhanced Indian Stock Market Agent initialized successfully
+2026-02-22 01:24:40,567 - config - INFO - Available tools: get_stock_price, get_multiple_stocks, get_stock_fundamentals, get_technical_indicators, get_market_news, get_fii_dii_data, get_usd_inr_rate, check_portfolio, send_alert, save_to_memory, read_from_memory

@@ -1,0 +1,76 @@
+# Core Dependencies
+anthropic>=0.25.0
+yfinance>=0.2.12
+pandas>=2.0.0
+numpy>=1.24.0
+pytz>=2023.3
+requests>=2.31.0
+python-dateutil>=2.8.2
+typing-extensions>=4.7.0
+
+# Streamlit Dashboard
+streamlit>=1.28.0
+plotly>=5.15.0
+altair>=5.0.0
+
+# Database and Storage
+SQLAlchemy>=2.0.0
+
+# Scheduling
+APScheduler>=3.10.0
+
+# Async Support
+aiohttp>=3.8.0
+asyncio-mqtt>=0.13.0  # Optional for MQTT notifications
+
+# Telegram Bot
+python-telegram-bot>=20.0
+
+# Data Processing and Analysis
+scipy>=1.11.0
+scikit-learn>=1.3.0
+ta-lib>=0.4.0  # Technical Analysis Library (optional)
+
+# Logging and Monitoring
+colorama>=0.4.6
+rich>=13.0.0  # Optional for rich console output
+
+# Configuration and Environment
+python-dotenv>=1.0.0
+
+# Testing (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Development Tools (optional)
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Optional: For enhanced data sources
+beautifulsoup4>=4.12.0  # For web scraping news
+lxml>=4.9.0  # XML parser
+feedparser>=6.0.0  # For RSS feeds
+
+# Optional: For advanced charting
+mplfinance>=0.12.0
+seaborn>=0.12.0
+matplotlib>=3.7.0
+
+# Optional: For ML-based predictions
+tensorflow>=2.13.0  # If you want to add ML models
+torch>=2.0.0  # Alternative to TensorFlow
+
+# Optional: For alternative notification channels
+slack-sdk>=3.22.0  # Slack notifications
+discord.py>=2.3.0  # Discord notifications
+
+# Note: Some packages might require additional system dependencies:
+# - TA-Lib requires installation of TA-Lib C library
+# - TensorFlow/PyTorch are large packages - install only if needed
+#
+# Minimal installation (core functionality):
+# pip install anthropic yfinance pandas numpy pytz requests streamlit plotly SQLAlchemy APScheduler aiohttp python-telegram-bot
+#
+# Full installation:
+# pip install -r requirements.txt
