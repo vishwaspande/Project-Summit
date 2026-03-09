@@ -362,6 +362,10 @@ def create_excel(investor_dict, filename, category_label):
             continue
 
         holdings, net_worth = parse_portfolio(html, investor_name)
+
+        # Filter out stocks where Qty Held is '-' (not current holdings)
+        holdings = [h for h in holdings if h.get('Qty Held', '-') not in ('-', '', None)]
+
         sheet_name = sanitize_sheet_name(investor_name)
         ws = wb.create_sheet(title=sheet_name)
 
