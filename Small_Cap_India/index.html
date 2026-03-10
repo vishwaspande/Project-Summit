@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Investor Stock Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #06080f;
+    --bg-base: #0b0f1a;
+    --bg-card: #111827;
+    --bg-hover: #1a2234;
+    --border: #1e293b;
+    --border-accent: #2d3a52;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8892a6;
+    --text-muted: #4a5568;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #22d3ee;
+    --accent-green: #34d399;
+    --accent-amber: #fbbf24;
+    --accent-red: #f87171;
+    --accent-purple: #a78bfa;
+    --gradient-header: linear-gradient(135deg, #0f172a 0%, #1a1044 50%, #0f172a 100%);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a4a60; }
+
+  /* Header */
+  .header {
+    background: var(--gradient-header);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: relative;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header .subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+  }
+  .stat-pill .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+  .stat-pill .label { color: var(--text-muted); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
+  }
+  .search-box {
+    position: relative;
+  }
+  .search-box input {
+    padding: 7px 12px 7px 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-primary);
+    font-size: 12px;
+    width: 240px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--accent-blue); }
+  .search-box::before {
+    content: '⌕';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  select, .view-btn {
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+  }
+  select:hover, .view-btn:hover { border-color: var(--border-accent); background: var(--bg-hover); }
+  select option { background: var(--bg-card); color: var(--text-primary); }
+  .view-btn.active {
+    border-color: var(--accent-blue);
+    background: rgba(59,130,246,0.12);
+    color: var(--accent-blue);
+    font-weight: 600;
+  }
+  .result-count { font-size: 11px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; }
+
+  /* Layout */
+  .main-layout {
+    display: flex;
+    height: calc(100vh - 115px);
+  }
+
+  /* Table */
+  .table-container {
+    flex: 1;
+    overflow: auto;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { position: sticky; top: 0; z-index: 10; }
+  thead th {
+    padding: 8px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  thead th:hover { color: var(--text-secondary); }
+  thead th.sorted { color: var(--accent-cyan); }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,41,59,0.5);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--bg-hover); }
+  tbody tr.selected { background: rgba(59,130,246,0.08); border-left: 2px solid var(--accent-blue); }
+  tbody tr:nth-child(even) { background: rgba(11,15,26,0.5); }
+  tbody tr:nth-child(even):hover { background: var(--bg-hover); }
+  tbody td {
+    padding: 7px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .stock-name { font-weight: 600; color: var(--text-primary); font-size: 12px; }
+  .stock-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+  /* Score badge */
+  .score-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: #fff;
+  }
+  .score-green { background: #059669; }
+  .score-amber { background: #b45309; }
+  .score-red { background: #b91c1c; }
+  .score-gray { background: #4b5563; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    margin-right: 3px;
+    white-space: nowrap;
+  }
+
+  /* Mini bar */
+  .mini-bar-wrap { display: flex; align-items: center; gap: 5px; }
+  .mini-bar { width: 50px; height: 5px; background: var(--bg-card); border-radius: 3px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+  .mini-bar-val { font-size: 11px; color: var(--text-secondary); min-width: 30px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Metric colors */
+  .val-good { color: var(--accent-green); }
+  .val-warn { color: var(--accent-amber); }
+  .val-bad { color: var(--accent-red); }
+  .val-neutral { color: var(--text-secondary); }
+
+  /* Detail Panel */
+  .detail-panel {
+    width: 340px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-base);
+    overflow-y: auto;
+    padding: 20px;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+  }
+  .detail-header h2 { font-size: 16px; font-weight: 700; }
+  .close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s;
+  }
+  .close-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .detail-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .detail-section h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(30,41,59,0.3);
+    font-size: 12px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: var(--text-muted); }
+  .metric-value { font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Category bars */
+  .cat-bar-wrap { margin-bottom: 8px; }
+  .cat-bar-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .cat-bar-header .cat-name { color: var(--text-secondary); }
+  .cat-bar-header .cat-score { font-family: 'IBM Plex Mono', monospace; color: var(--text-primary); }
+  .cat-bar { width: 100%; height: 4px; background: var(--bg-deep); border-radius: 2px; }
+  .cat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+
+  /* 52W gauge */
+  .gauge-52w {
+    position: relative;
+    height: 8px;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-amber), var(--accent-red));
+    border-radius: 4px;
+    margin: 8px 0 4px;
+  }
+  .gauge-marker {
+    position: absolute;
+    top: -4px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    border: 2px solid var(--accent-blue);
+    transform: translateX(-50%);
+    box-shadow: 0 0 8px rgba(59,130,246,0.4);
+  }
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Radar SVG */
+  .radar-wrap { display: flex; justify-content: center; margin: 12px 0; }
+
+  /* Investor bubble */
+  .investor-text {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .detail-panel { width: 100%; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100; }
+    .stats-bar { display: none; }
+    .search-box input { width: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="data.js"></script>
+<script>
+const e = React.createElement;
+const { useState, useMemo, useCallback } = React;
+
+const TAG_COLORS = {
+  "Deep Value":"#1d4ed8","Value":"#2563eb","High Growth":"#7c3aed","Growth":"#8b5cf6",
+  "High Quality":"#059669","Low Debt":"#0d9488","Debt Free":"#14b8a6","Dividend":"#ca8a04",
+  "GARP":"#4f46e5","Loss-Making":"#b91c1c","No Data":"#4b5563","Unclassified":"#4b5563"
+};
+
+const fmt = (v, d=1) => v != null && !isNaN(v) ? Number(v).toFixed(d) : "—";
+const fmtI = (v) => v != null && !isNaN(v) ? Math.round(v).toLocaleString('en-IN') : "—";
+
+function scoreClass(s) {
+  if (s >= 70) return "score-green";
+  if (s >= 55) return "score-amber";
+  if (s >= 40) return "score-red";
+  return "score-gray";
+}
+
+function valClass(v, lo, hi, lower) {
+  if (v == null) return "val-neutral";
+  if (lower) return v <= lo ? "val-good" : v >= hi ? "val-bad" : "val-warn";
+  return v >= hi ? "val-good" : v <= lo ? "val-bad" : "val-warn";
+}
+
+const scored = STOCKS_DATA.filter(s => s.score > 0).sort((a,b) => b.score - a.score);
+
+function Radar({ breakdown }) {
+  if (!breakdown || !breakdown.category_scores) return null;
+  const cats = Object.keys(breakdown.category_scores);
+  const n = cats.length;
+  if (n < 3) return null;
+  const cx = 55, cy = 55, r = 42;
+
+  const catPcts = cats.map(c => {
+    const s = breakdown.category_scores[c] || 0;
+    const w = breakdown.category_weights?.[c] || 1;
+    return Math.round((s / w) * 100);
+  });
+
+  const ptAt = (i, radius) => {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
+  };
+
+  const gridPoly = (radius) => Array.from({length: n}, (_, i) => ptAt(i, radius).join(",")).join(" ");
+  const dataPoly = catPcts.map((p, i) => ptAt(i, r * p / 100).join(",")).join(" ");
+
+  return e("svg", { width: 120, height: 120, viewBox: "0 0 110 110" },
+    e("polygon", { points: gridPoly(r), fill: "none", stroke: "#1e293b", strokeWidth: 0.5 }),
+    e("polygon", { points: gridPoly(r * 0.5), fill: "none", stroke: "#1e293b", strokeWidth: 0.5 }),
+    ...Array.from({length: n}, (_, i) =>
+      e("line", { key: "l"+i, x1: cx, y1: cy, x2: ptAt(i, r)[0], y2: ptAt(i, r)[1], stroke: "#1e293b", strokeWidth: 0.5 })
+    ),
+    e("polygon", { points: dataPoly, fill: "rgba(59,130,246,0.2)", stroke: "#3b82f6", strokeWidth: 1.5 }),
+    ...cats.map((c, i) => {
+      const [lx, ly] = ptAt(i, r + 16);
+      return e("text", { key: c, x: lx, y: ly, textAnchor: "middle", dominantBaseline: "middle", fill: "#64748b", fontSize: 6 }, c.slice(0, 6));
+    })
+  );
+}
+
+function DetailPanel({ stock, onClose }) {
+  if (!stock) return null;
+  const s = stock;
+  const bd = s.breakdown || {};
+
+  const metrics = [
+    ["Price", "₹" + fmtI(s.price)],
+    ["Market Cap", "₹" + fmtI(s.mcap) + " Cr"],
+    ["P/E Ratio", fmt(s.pe)],
+    ["P/B Ratio", fmt(s.pb)],
+    ["PEG Ratio", fmt(s.peg)],
+    ["ROE", fmt(s.roe) + "%"],
+    ["ROCE", fmt(s.roce) + "%"],
+    ["Debt/Equity", fmt(s.de, 2)],
+    ["EPS Growth", fmt(s.epsg) + "%"],
+    ["Revenue Growth", fmt(s.revg) + "%"],
+    ["Dividend Yield", fmt(s.dy) + "%"],
+    ["Promoter Holding", fmt(s.promo) + "%"],
+    ["Promoter Pledge", fmt(s.pledge) + "%"],
+    ["Free Cash Flow", s.fcf != null ? "₹" + fmtI(s.fcf) + " Cr" : "—"],
+    ["Net Income", s.ni != null ? "₹" + fmtI(s.ni) + " Cr" : "—"],
+    ["Book Value", "₹" + fmtI(s.bv)],
+  ];
+
+  const catEntries = bd.category_scores ? Object.entries(bd.category_scores) : [];
+
+  const pos52 = (s.hi52 && s.lo52 && s.price && s.hi52 > s.lo52)
+    ? Math.max(0, Math.min(100, ((s.price - s.lo52) / (s.hi52 - s.lo52)) * 100))
+    : null;
+
+  return e("div", { className: "detail-panel" },
+    e("div", { className: "detail-header" },
+      e("div", null,
+        e("h2", null, s.stock),
+        e("div", { style: { fontSize: 11, color: "var(--text-muted)", marginTop: 2 } }, s.code + " • " + (s.sector || ""))
+      ),
+      e("button", { className: "close-btn", onClick: onClose }, "×")
+    ),
+
+    e("div", { style: { margin: "10px 0", display: "flex", alignItems: "center", gap: 10 } },
+      e("span", { className: "score-badge " + scoreClass(s.score) }, s.score),
+      e("span", { style: { fontSize: 11, color: "var(--text-muted)" } }, "/ 100")
+    ),
+
+    e("div", { style: { margin: "6px 0" } },
+      ...(s.tags || []).map(t => e("span", { key: t, className: "tag", style: { background: TAG_COLORS[t] || "#4b5563" } }, t))
+    ),
+
+    // Radar
+    e("div", { className: "radar-wrap" }, e(Radar, { breakdown: bd })),
+
+    // Category breakdown
+    catEntries.length > 0 && e("div", { className: "detail-section" },
+      e("h3", null, "Score Breakdown"),
+      ...catEntries.map(([cat, score]) => {
+        const weight = bd.category_weights?.[cat] || 1;
+        const pct = Math.round((score / weight) * 100);
+        const barColor = pct > 70 ? "var(--accent-green)" : pct > 40 ? "var(--accent-amber)" : "var(--accent-red)";
+        return e("div", { key: cat, className: "cat-bar-wrap" },
+          e("div", { className: "cat-bar-header" },
+            e("span", { className: "cat-name" }, cat),
+            e("span", { className: "cat-score" }, score.toFixed(1) + "/" + weight + " (" + pct + "%)")
+          ),
+          e("div", { className: "cat-bar" },
+            e("div", { className: "cat-bar-fill", style: { width: pct + "%", background: barColor } })
+          )
+        );
+      })
+    ),
+
+    // 52W gauge
+    pos52 !== null && e("div", { className: "detail-section" },
+      e("h3", null, "52-Week Position"),
+      e("div", { className: "gauge-52w" },
+        e("div", { className: "gauge-marker", style: { left: pos52 + "%" } })
+      ),
+      e("div", { className: "gauge-labels" },
+        e("span", null, "₹" + fmtI(s.lo52)),
+        e("span", { style: { color: "var(--accent-blue)", fontWeight: 600 } }, "₹" + fmtI(s.price)),
+        e("span", null, "₹" + fmtI(s.hi52))
+      )
+    ),
+
+    // Key Metrics
+    e("div", { className: "detail-section" },
+      e("h3", null, "Key Metrics"),
+      ...metrics.map(([label, val]) =>
+        e("div", { key: label, className: "metric-row" },
+          e("span", { className: "metric-label" }, label),
+          e("span", { className: "metric-value" }, val)
+        )
+      )
+    ),
+
+    // Investors
+    e("div", { className: "detail-section" },
+      e("h3", null, "Super Investors (" + s.inv_count + ")"),
+      e("p", { className: "investor-text" }, s.investor)
+    )
+  );
+}
+
+function App() {
+  const [view, setView] = useState("ranked");
+  const [search, setSearch] = useState("");
+  const [sectorFilter, setSectorFilter] = useState("All");
+  const [tagFilter, setTagFilter] = useState("All");
+  const [selected, setSelected] = useState(null);
+  const [sortBy, setSortBy] = useState("score");
+  const [sortDir, setSortDir] = useState("desc");
+
+  const sectors = useMemo(() => {
+    const s = new Set(scored.map(x => x.sector).filter(Boolean));
+    return ["All", ...Array.from(s).sort()];
+  }, []);
+
+  const allTags = useMemo(() => {
+    const t = new Set();
+    scored.forEach(s => (s.tags || []).forEach(tag => t.add(tag)));
+    return ["All", ...Array.from(t).sort()];
+  }, []);
+
+  const filtered = useMemo(() => {
+    let list = view === "ranked" ? scored : STOCKS_DATA;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(s =>
+        s.stock.toLowerCase().includes(q) ||
+        s.code.toLowerCase().includes(q) ||
+        (s.investor || "").toLowerCase().includes(q)
+      );
+    }
+    if (sectorFilter !== "All") list = list.filter(s => s.sector === sectorFilter);
+    if (tagFilter !== "All") list = list.filter(s => (s.tags || []).includes(tagFilter));
+    return [...list].sort((a, b) => {
+      let av = a[sortBy], bv = b[sortBy];
+      if (typeof av === 'string') return sortDir === "desc" ? bv?.localeCompare(av) : av?.localeCompare(bv);
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return sortDir === "desc" ? bv - av : av - bv;
+    });
+  }, [view, search, sectorFilter, tagFilter, sortBy, sortDir]);
+
+  const handleSort = useCallback((field) => {
+    if (sortBy === field) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortBy(field); setSortDir("desc"); }
+  }, [sortBy]);
+
+  const avgScore = scored.length > 0 ? (scored.reduce((a, b) => a + b.score, 0) / scored.length).toFixed(1) : 0;
+
+  const columns = [
+    { label: "#", field: null, w: 36 },
+    { label: "Stock", field: "stock", w: 160 },
+    { label: "Score", field: "score", w: 66 },
+    { label: "Tags", field: null, w: 130 },
+    { label: "Inv", field: "inv_count", w: 40 },
+    { label: "P/E", field: "pe", w: 55 },
+    { label: "ROE%", field: "roe", w: 80 },
+    { label: "ROCE%", field: "roce", w: 80 },
+    { label: "D/E", field: "de", w: 50 },
+    { label: "EPS Gr%", field: "epsg", w: 65 },
+    { label: "Rev Gr%", field: "revg", w: 65 },
+    { label: "MCap Cr", field: "mcap", w: 80 },
+    { label: "Price", field: "price", w: 70 },
+  ];
+
+  return e("div", null,
+    // Header
+    e("div", { className: "header" },
+      e("div", { className: "header-row" },
+        e("div", null,
+          e("h1", null, "Super Investor Stock Analyzer"),
+          e("div", { className: "subtitle" }, "Indian super investor portfolio analysis • 25-metric scoring engine")
+        ),
+        e("div", { className: "stats-bar" },
+          e("div", { className: "stat-pill" }, e("span", { className: "num" }, "360"), e("span", { className: "label" }, "stocks")),
+          e("div", { className: "stat-pill" }, e("span", { className: "num" }, scored.length), e("span", { className: "label" }, "scored")),
+          e("div", { className: "stat-pill" }, e("span", { className: "num" }, avgScore), e("span", { className: "label" }, "avg score"))
+        )
+      ),
+      e("div", { className: "controls" },
+        e("div", { className: "search-box" },
+          e("input", {
+            value: search,
+            onChange: ev => setSearch(ev.target.value),
+            placeholder: "Search stock, code, investor..."
+          })
+        ),
+        e("select", { value: sectorFilter, onChange: ev => setSectorFilter(ev.target.value) },
+          ...sectors.map(s => e("option", { key: s, value: s }, s === "All" ? "All Sectors" : s))
+        ),
+        e("select", { value: tagFilter, onChange: ev => setTagFilter(ev.target.value) },
+          ...allTags.map(t => e("option", { key: t, value: t }, t === "All" ? "All Tags" : t))
+        ),
+        e("button", { className: "view-btn" + (view === "ranked" ? " active" : ""), onClick: () => setView("ranked") },
+          "Scored (" + scored.length + ")"
+        ),
+        e("button", { className: "view-btn" + (view === "all" ? " active" : ""), onClick: () => setView("all") },
+          "All 360"
+        ),
+        e("span", { className: "result-count" }, filtered.length + " results")
+      )
+    ),
+
+    // Main
+    e("div", { className: "main-layout" },
+      e("div", { className: "table-container" },
+        e("table", null,
+          e("thead", null,
+            e("tr", null,
+              ...columns.map((col, ci) =>
+                e("th", {
+                  key: ci,
+                  className: col.field && sortBy === col.field ? "sorted" : "",
+                  style: { width: col.w },
+                  onClick: col.field ? () => handleSort(col.field) : undefined
+                },
+                  col.label,
+                  col.field && sortBy === col.field ? (sortDir === "desc" ? " ↓" : " ↑") : ""
+                )
+              )
+            )
+          ),
+          e("tbody", null,
+            ...filtered.map((s, i) => {
+              const isSelected = selected && selected.code === s.code;
+              return e("tr", {
+                key: s.code + "-" + i,
+                className: isSelected ? "selected" : "",
+                onClick: () => setSelected(s)
+              },
+                e("td", { style: { color: "var(--text-muted)", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 } }, i + 1),
+                e("td", null,
+                  e("div", { className: "stock-name" }, s.stock.length > 24 ? s.stock.slice(0, 24) + "…" : s.stock),
+                  e("div", { className: "stock-meta" }, s.code + (s.sector ? " • " + s.sector : ""))
+                ),
+                e("td", null, e("span", { className: "score-badge " + scoreClass(s.score) }, s.score)),
+                e("td", null,
+                  ...(s.tags || []).slice(0, 2).map(t =>
+                    e("span", { key: t, className: "tag", style: { background: TAG_COLORS[t] || "#4b5563" } }, t)
+                  )
+                ),
+                e("td", { style: { color: "var(--accent-amber)", fontWeight: 700, textAlign: "center", fontFamily: "'IBM Plex Mono', monospace" } }, s.inv_count),
+                e("td", { className: valClass(s.pe, 20, 40, true), style: { fontFamily: "'IBM Plex Mono', monospace" } }, fmt(s.pe, 0)),
+                e("td", null,
+                  s.roe != null
+                    ? e("div", { className: "mini-bar-wrap" },
+                        e("div", { className: "mini-bar" },
+                          e("div", { className: "mini-bar-fill", style: { width: Math.min(100, Math.max(0, s.roe / 30 * 100)) + "%", background: s.roe > 20 ? "var(--accent-green)" : "var(--accent-blue)" } })
+                        ),
+                        e("span", { className: "mini-bar-val" }, fmt(s.roe))
+                      )
+                    : e("span", { className: "val-neutral" }, "—")
+                ),
+                e("td", null,
+                  s.roce != null
+                    ? e("div", { className: "mini-bar-wrap" },
+                        e("div", { className: "mini-bar" },
+                          e("div", { className: "mini-bar-fill", style: { width: Math.min(100, Math.max(0, s.roce / 35 * 100)) + "%", background: s.roce > 20 ? "var(--accent-green)" : "var(--accent-blue)" } })
+                        ),
+                        e("span", { className: "mini-bar-val" }, fmt(s.roce))
+                      )
+                    : e("span", { className: "val-neutral" }, "—")
+                ),
+                e("td", { className: valClass(s.de, 0.5, 1.5, true), style: { fontFamily: "'IBM Plex Mono', monospace" } }, fmt(s.de, 2)),
+                e("td", { className: valClass(s.epsg, 0, 20, false), style: { fontFamily: "'IBM Plex Mono', monospace" } }, fmt(s.epsg, 0)),
+                e("td", { className: valClass(s.revg, 0, 15, false), style: { fontFamily: "'IBM Plex Mono', monospace" } }, fmt(s.revg, 0)),
+                e("td", { style: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 } }, fmtI(s.mcap)),
+                e("td", { style: { fontFamily: "'IBM Plex Mono', monospace" } }, s.price ? "₹" + fmtI(s.price) : "—")
+              );
+            })
+          )
+        )
+      ),
+
+      // Detail panel
+      selected && e(DetailPanel, { stock: selected, onClose: () => setSelected(null) })
+    )
+  );
+}
+
+ReactDOM.render(e(App), document.getElementById("app"));
+</script>
+</body>
+</html>
