@@ -1,0 +1,380 @@
+Rank,Stock,Code,Score,Tags,Investor,InvCount,Price,MCap_Cr,PE,PB,ROE,ROCE,DE,DivYld,EPS_Gr,Rev_Gr,Promoter,Pledge,Sector
+1,Timescan Logistics,TIMESCAN,87.8,"Deep Value, High Quality",Mohnish Pabrai,1,47.0,32.8,5.11,1.15,25.2,33.0,,,,,,,"NSE
+                - SM"
+2,Unique Organics,UNIQUEO,86.4,"Deep Value, High Quality",Nemish S Shah,1,80.8,48.1,7.3,1.28,37.9,50.1,,,,,,,BSE
+3,MPS,MPSLTD,84.2,"Value, High Quality, Dividend","Porinju Veliyath, Radhakishan Damani",2,1423.0,2434.0,14.8,4.96,30.5,40.9,,5.83,,,,,NSE
+4,DAM Capital Advisors,DAMCAPITAL,82.2,"Value, High Quality",Ajay Upadhyaya,1,134.0,948.0,11.7,3.06,48.7,64.1,,0.75,,,,,NSE
+5,SRM Contractors,SRM,81.9,"Value, High Quality",Ajay Upadhyaya,1,388.0,890.0,11.0,2.98,27.2,33.2,,,,,,,NSE
+6,GHCL,GHCL,76.6,"Deep Value, Dividend",Dolly Khanna,1,463.0,4247.0,8.38,1.17,18.6,24.2,,2.59,,,,,NSE
+7,Prakash Industries,PRAKASH,76.1,Deep Value,"Porinju Veliyath, Dolly Khanna",2,123.0,2201.0,5.7,0.71,14.1,,,1.22,,,,,NSE
+8,Stove Kraft,STOVEKRAFT,75.7,"Value, High Quality",Ashish Kacholia,1,486.0,1613.0,19.8,5.25,67.5,31.8,,0.62,,,,,NSE
+9,Balu Forge,BALUFORGE,75.4,High Quality,Ashish Kacholia,1,469.0,5513.0,21.6,4.3,25.4,31.3,,0.03,,,,,NSE
+10,Tata Motors PV,TMPV,74.0,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,345.0,127135.0,21.2,1.15,28.1,20.0,,1.74,,,,,NSE
+11,Mamata Machinery,MAMATA,73.6,High Quality,Ajay Upadhyaya,1,390.0,958.0,22.7,5.43,26.9,34.9,,0.13,,,,,NSE
+12,RNFI Services,RNFI,73.6,High Quality,Anil Kumar Goel,1,246.0,617.0,23.8,4.54,25.2,29.4,,,,,,,"NSE
+                - SM"
+13,Elecon Engineering,ELECON,72.7,High Quality,Ajay Upadhyaya,1,402.0,9005.0,21.8,4.02,23.0,28.5,,0.5,,,,,NSE
+14,TBI Corn,TBI,70.4,Deep Value,Ashish Kacholia,1,64.4,117.0,7.14,1.05,18.9,18.6,,,,,,,"NSE
+                - SM"
+15,Alufluoride,ALUFLUOR,70.2,"Value, High Quality",Mohnish Pabrai,1,428.0,334.0,14.1,2.97,20.8,23.6,,0.7,,,,,BSE
+16,Beta Drugs,BETA,69.8,High Quality,Ashish Kacholia,1,1121.0,1136.0,26.4,5.12,25.9,27.0,,,,,,,NSE
+17,B N Rathi Securities,BNRSEC,69.7,"Deep Value, Dividend",Nemish S Shah,1,14.2,59.3,8.26,0.81,14.1,20.1,,3.52,,,,,BSE
+18,Autoriders Intl,AUTORIDERS,68.4,Value,"Porinju Veliyath, Radhakishan Damani",2,404.0,141.0,14.4,2.62,20.0,19.5,,0.04,,,,,BSE
+19,J Kumar Infraprojects,JKIL,67.7,Deep Value,"Porinju Veliyath, Radhakishan Damani",2,499.0,3792.0,9.47,1.19,13.8,19.9,,0.8,,,,,NSE
+20,Pratham EPC Projects,PRATHAM,67.6,Unclassified,Ashish Kacholia,1,129.0,235.0,22.7,2.62,19.9,25.6,,,,,,,"NSE
+                - SM"
+21,Agarwal Industrial,AGARIND,67.5,Deep Value,Ashish Kacholia,1,450.0,674.0,11.6,1.03,20.1,16.9,,0.73,,,,,NSE
+22,Southern Petrchem,SPIC,67.4,"Deep Value, Dividend",Dolly Khanna,1,64.8,1316.0,6.53,1.02,13.8,16.9,,3.09,,,,,NSE
+23,Crisil,CRISIL,67.1,High Quality,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,4239.0,31000.0,40.5,10.21,27.4,34.6,,0.59,,,,,NSE
+24,Geojit Fin Serv,GEOJITFSL,67.1,"Value, Dividend","Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,60.2,1680.0,16.9,1.44,16.8,18.8,,2.49,,,,,NSE
+25,Surya Roshni,SURYAROSNI,67.0,"Deep Value, Dividend","Porinju Veliyath, Radhakishan Damani",2,212.0,4608.0,14.5,1.84,14.8,20.6,,2.01,,,,,NSE
+26,Kesar Terminals,KTIL,66.5,Unclassified,Nemish S Shah,1,64.8,70.8,,,,,,0.77,,,,,BSE
+27,NCC,NCC,66.0,Deep Value,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,145.0,9106.0,12.2,1.21,11.4,21.7,,1.52,,,,,NSE
+28,Inventurus Knowledge,IKS,65.7,High Quality,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,1396.0,23866.0,36.0,10.66,32.9,27.2,,,,,,,NSE
+29,Sudeep Pharma,SUDEEPPHRM,65.7,High Quality,"Porinju Veliyath, Radhakishan Damani",2,594.0,6713.0,42.6,9.27,32.8,35.6,,,,,,,NSE
+30,Pearl Global,PGIL,64.5,High Quality,"Porinju Veliyath, Radhakishan Damani",2,1514.0,6987.0,26.8,5.43,24.3,22.1,,0.76,,,,,NSE
+31,Z-Tech,ZTECH,64.4,High Quality,Ashish Kacholia,1,490.0,709.0,35.2,4.12,20.9,28.2,,,,,,,"NSE
+                - SM"
+32,Premier,PREMIER,64.1,Unclassified,Nemish S Shah,1,2.99,8.72,,,,,,,,,,,"NSE
+                - BE"
+33,Satchmo Holdings,NITESHEST,64.1,Unclassified,Nemish S Shah,1,3.52,51.3,,,,,,,,,,,BSE
+34,Shivalik Bimetal Controls,SBCL,64.0,High Quality,Mohnish Pabrai,1,430.0,2477.0,27.0,5.57,20.6,25.6,,0.63,,,,,NSE
+35,Genus Power,GENUSPOWER,63.0,Value,Ajay Upadhyaya,1,258.0,7858.0,14.5,4.12,18.1,19.2,,0.95,,,,,NSE
+36,Deepak Fertilisers,DEEPAKFERT,62.5,Deep Value,"Porinju Veliyath, Radhakishan Damani",2,980.0,12351.0,14.1,1.9,15.6,15.7,,1.02,,,,,NSE
+37,Bansal Roofing,BRPL,62.5,Value,Nemish S Shah,1,114.0,150.0,16.8,4.25,18.2,22.4,,0.88,,,,,BSE
+38,LT Foods,LTFOODS,62.4,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,378.0,13130.0,20.2,3.12,16.7,19.2,,0.79,,,,,NSE
+39,Ashnoor Textile,ASHNOOR,62.2,Deep Value,Nemish S Shah,1,41.1,65.5,7.69,0.7,15.4,13.6,,,,,,,BSE
+40,Fineotex Chemical,FCL,62.2,Unclassified,Ashish Kacholia,1,22.6,2638.0,27.2,3.36,18.4,23.8,,0.35,,,,,NSE
+41,India Metals & Ferro Alloys,IMFA,61.8,Value,"Porinju Veliyath, Radhakishan Damani",2,1228.0,6631.0,18.0,2.64,17.0,21.3,,1.63,,,,,NSE
+42,Emkay Global,EMKAY,61.6,High Quality,Dolly Khanna,1,221.0,574.0,31.9,1.91,20.9,20.4,,0.68,,,,,NSE
+43,Skipper,SKIPPER,61.4,Unclassified,Ajay Upadhyaya,1,342.0,3863.0,20.3,3.03,14.4,24.2,,0.03,,,,,NSE
+44,Nuvama Wealth,NUVAMA,61.3,"High Quality, Dividend","Porinju Veliyath, Radhakishan Damani",2,1238.0,22578.0,22.0,5.95,30.9,20.4,,2.33,,,,62.8,NSE
+45,Concord Biotech,CONCORDBIO,61.1,High Quality,Rakesh Jhunjhunwala & Associate,1,1197.0,12503.0,39.7,6.84,21.3,28.2,,0.89,,,,,NSE
+46,Artefact Projects,ARTEFACT,60.3,Deep Value,Nemish S Shah,1,62.8,45.7,6.34,0.67,11.7,13.4,,0.8,,,,,BSE
+47,Elnet Technologies,ELNET,60.3,Deep Value,Mohnish Pabrai,1,331.0,133.0,14.7,1.96,14.2,18.5,,0.57,,,,,BSE
+48,Canara Bank,CANBK,59.8,"Deep Value, Dividend","Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,142.0,129057.0,6.4,1.1,17.8,6.79,,2.81,,,,,NSE
+49,Som Distilleries,SDBL,59.7,Value,Dolly Khanna,1,76.6,1591.0,18.0,1.92,16.2,18.0,,,,,,,NSE
+50,Va Tech Wabag,WABAG,59.6,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,1198.0,7471.0,21.6,3.21,14.6,19.7,,0.33,,,,,NSE
+51,Beardsell,BEARDSELL,59.5,Deep Value,Nemish S Shah,1,23.8,93.7,10.5,1.09,12.9,15.6,,0.42,,,,,NSE
+52,Advait Energy,ADVAIT,59.2,High Quality,Ashish Kacholia,1,1627.0,1782.0,38.8,7.75,22.5,26.9,,0.11,,,,,NSE
+53,Agro Phos,AGROPHOS,58.7,"Deep Value, Dividend",Nemish S Shah,1,32.6,66.0,6.9,0.94,8.03,13.9,,3.07,,,,,NSE
+54,Dalmia Industrial,DALMIA,57.4,Deep Value,Vijay Kedia,1,314.0,2573.0,7.6,0.79,12.4,9.48,,1.91,,,,,NSE
+55,Thejo Engineering,THEJO,57.2,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1662.0,1803.0,35.7,5.58,18.2,22.1,,0.3,,,,,NSE
+56,LWS Knitwear,LWSKNIT,56.9,Deep Value,Nemish S Shah,1,15.8,23.2,9.08,0.75,12.0,12.8,,,,,,,BSE
+57,Bhagwati Autocast,BGWTATO,56.7,Value,Nemish S Shah,1,517.0,149.0,11.8,2.86,13.5,17.6,,0.48,,,,,BSE
+58,Time Technoplast,TIMETECHNO,56.6,Value,Ajay Upadhyaya,1,171.0,8433.0,18.9,2.78,14.2,17.4,,0.73,,,,,NSE
+59,Capacit'e Infraprojects,CAPACITE,56.2,Deep Value,"Porinju Veliyath, Radhakishan Damani",2,219.0,1851.0,9.38,1.02,12.6,18.0,,,,,,31.9,NSE
+60,Strides Pharma,STAR,55.9,Value,"Porinju Veliyath, Radhakishan Damani",2,873.0,8072.0,14.7,2.92,151.0,14.7,,0.46,,,,30.6,NSE
+61,Tata Communications,TATACOMM,55.8,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,1477.0,42083.0,36.8,14.78,55.2,14.8,,1.69,,,,,NSE
+62,InfoBeans Tech,INFOBEAN,55.4,Value,"Porinju Veliyath, Radhakishan Damani",2,144.0,1399.0,18.3,3.8,12.4,16.8,,0.17,,,,,NSE
+63,Transpek Industry,TRANSPEK,55.2,"Deep Value, Dividend","Porinju Veliyath, Radhakishan Damani",2,908.0,507.0,8.69,0.66,7.75,10.0,,2.2,,,,,BSE
+64,Monolithisch,MONOLITH,55.1,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,406.0,883.0,44.7,7.57,41.2,,,,,,,,"NSE
+                - SM"
+65,Vasa Denticity,DENTALKART,54.9,Unclassified,"Porinju Veliyath, Radhakishan Damani, Ashish Kacholia",3,421.0,730.0,55.7,4.28,16.9,22.9,,,,,,,"NSE
+                - SM"
+66,Kilitch DrugsI,KILITCH,54.9,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,317.0,554.0,21.3,2.09,12.6,15.7,,,,,,,NSE
+67,Raghav Productivity Enhancers,RPEL,54.8,High Quality,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,698.0,3200.0,64.3,14.91,20.5,25.8,,0.14,,,,,NSE
+68,Hind Rectifiers,HIRECT,54.6,High Quality,"Porinju Veliyath, Radhakishan Damani",2,1439.0,2476.0,48.3,12.96,25.6,21.6,,0.14,,,,,NSE
+69,Vidhi Specialty Food,VIDHIING,54.6,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,300.0,1496.0,31.4,4.85,14.9,18.7,,1.67,,,,,NSE
+70,Jammu & Kashmir Bank,J&KBANK,54.0,Deep Value,"Porinju Veliyath, Radhakishan Damani",2,121.0,13307.0,6.21,0.86,15.8,6.15,,1.78,,,,,NSE
+71,Intellect Design Arena,INTELLECT,53.9,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,676.0,9428.0,25.0,3.19,12.7,16.8,,0.59,,,,,NSE
+72,Veto Switchgears,VETO,53.9,Deep Value,Nemish S Shah,1,100.0,192.0,8.02,0.69,8.62,11.1,,1.0,,,,,NSE
+73,Roto Pumps,ROTO,53.5,Unclassified,Anil Kumar Goel,1,54.4,1025.0,32.1,4.46,16.0,19.0,,1.47,,,,,NSE
+74,Jain Resource Recycling,JAINREC,53.1,High Quality,Ashish Kacholia,1,423.0,14606.0,42.9,10.68,40.6,26.7,,,,,,,NSE
+75,Sarda Energy & Minerals,SARDAEN,52.8,Value,"Porinju Veliyath, Radhakishan Damani",2,545.0,19214.0,18.3,2.74,13.4,15.3,,0.28,,,,,NSE
+76,Moongipa Cap Fin,MONGIPA,52.3,Deep Value,Nemish S Shah,1,15.2,13.9,11.5,0.57,9.43,12.1,,,,,,,BSE
+77,West Coast Paper,WSTCSTPAPR,52.1,Value,"Porinju Veliyath, Radhakishan Damani",2,391.0,2581.0,18.1,0.73,9.49,11.5,,1.28,,,,,NSE
+78,Acknit Industries,ACKNIT,51.2,Deep Value,Nemish S Shah,1,279.0,85.0,11.0,0.94,10.8,10.8,,0.54,,,,,BSE
+79,Kirloskar Ferrous,KIRLFER,51.0,Value,"Porinju Veliyath, Radhakishan Damani",2,382.0,6299.0,18.7,1.76,8.94,12.2,,1.44,,,,,NSE
+80,Cyber Media,CYBERMEDIA,50.6,Value,Nemish S Shah,1,13.6,28.1,11.2,,,4.52,,,,,,,NSE
+81,IFB Industries,IFBIND,50.4,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1042.0,4228.0,32.7,4.57,13.7,17.4,,,,,,,NSE
+82,Escorts Kubota,ESCORTS,50.0,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,3329.0,37322.0,28.6,3.13,12.8,13.6,,0.84,,,,,NSE
+83,Roopa Industries,ROOPAIND,50.0,Value,Nemish S Shah,1,44.9,35.3,18.3,1.94,12.1,12.0,,,,,,,BSE
+84,Knowledge Marine Engg,KMEW,49.8,High Quality,Ashish Kacholia,1,1639.0,3996.0,62.6,16.71,25.8,24.7,,,,,,,NSE
+85,Lux Industries,LUXIND,49.3,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,880.0,2660.0,23.8,1.49,9.92,12.6,,0.23,,,,,NSE
+86,Protean eGov Tech,PROTEAN,49.1,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,533.0,2167.0,23.2,2.12,9.38,11.7,,1.88,,,,,NSE
+87,Man Industries,MANINDS,49.0,Value,Ashish Kacholia,1,402.0,3011.0,16.0,1.53,10.0,16.0,,,,,,,NSE
+88,Ansal Buildwell,ANSALBU,48.8,Deep Value,Nemish S Shah,1,98.3,72.5,10.6,0.53,6.31,9.85,,1.02,,,,,BSE
+89,Martin Burn,MARBU,48.5,Deep Value,Nemish S Shah,1,47.0,24.2,4.2,0.42,-3.9,-2.17,,,,,,,BSE
+90,Teesta Agro,TEEAI,48.5,Deep Value,Nemish S Shah,1,111.0,62.0,7.04,0.51,5.99,7.97,,,,,,,BSE
+91,Metro Brands,METROBRAND,47.9,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,948.0,25869.0,66.4,14.21,19.0,19.4,,0.58,,,,,NSE
+92,Wendt,WENDT,47.6,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,6492.0,1302.0,58.3,5.23,15.1,19.8,,0.77,,,,,NSE
+93,Modipon,MODIPON,47.4,Unclassified,Nemish S Shah,1,30.4,35.2,,0.58,-57.6,,,,,,,,BSE
+94,Mystic Electronics,MYSTIC,47.2,Deep Value,Vijay Kedia,1,3.2,6.33,7.44,0.22,3.67,3.87,,,,,,,BSE
+95,PDS,PDSL,47.1,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,291.0,4105.0,39.9,2.42,11.1,15.9,,1.15,,,,,NSE
+96,Deco-Mica,DECOMIC,47.1,Value,Nemish S Shah,1,60.3,25.3,16.7,0.94,7.51,11.8,,,,,,,BSE
+97,Austin Engineering,AUSTENG,46.9,Deep Value,Nemish S Shah,1,116.0,40.4,8.91,0.59,6.0,8.04,,,,,,,BSE
+98,Avonmore Capital,AVONMORE,46.8,Value,Nemish S Shah,1,13.7,392.0,17.0,1.02,8.59,10.6,,,,,,,NSE
+99,Carysil,CARYSIL,46.4,Unclassified,Ashish Kacholia,1,844.0,2401.0,26.5,4.24,14.5,15.4,,0.28,,,,,NSE
+100,Vascon Engineers,VASCONEQ,46.4,Deep Value,Ajay Upadhyaya,1,34.6,790.0,10.3,0.7,6.59,7.76,,,,,,,NSE
+101,Sicagen,SICAGEN,46.1,Deep Value,Nemish S Shah,1,52.2,207.0,11.6,0.4,3.41,5.57,,1.92,,,,,BSE
+102,Haryana Leather Chem,HARLETH,46.0,Deep Value,Nemish S Shah,1,52.1,25.6,12.5,0.58,5.45,8.02,,1.92,,,,,BSE
+103,Zaggle Prepaid Ocean,ZAGGLE,45.6,Unclassified,Ashish Kacholia,1,224.0,3014.0,23.4,2.3,9.46,12.8,,,,,,,NSE
+104,ASM Technologies,ASMTEC,45.3,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,2306.0,3364.0,55.1,11.42,16.8,19.3,,0.2,,,,,BSE
+105,Titan Company,TITAN,45.2,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,4220.0,374830.0,76.8,29.31,31.8,19.1,,0.26,,,,,NSE
+106,Majestic Auto,MAJESAUTO,45.1,"Value, Dividend",Nemish S Shah,1,298.0,310.0,16.3,0.44,1.11,4.05,,3.35,,,,,BSE
+107,KDDL,KDDL,44.8,Unclassified,Porinju Veliyath,1,2317.0,2850.0,33.9,2.72,11.5,14.1,,0.65,,,,,NSE
+108,Infinium Pharmachem,INFINIUM,44.7,Unclassified,Ashish Kacholia,1,208.0,324.0,34.7,2.82,12.0,14.6,,,,,,,"NSE
+                - SM"
+109,Shaily Engineering,SHAILY,44.6,Unclassified,Ashish Kacholia,1,1886.0,8664.0,54.7,13.67,18.5,19.5,,0.11,,,,,NSE
+110,Federal Bank,FEDERALBNK,44.4,Value,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,276.0,67937.0,16.6,1.88,12.9,7.03,,0.43,,,,,NSE
+111,Hindustan Constrn,HCC,44.4,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,16.1,4226.0,25.4,3.86,-0.7,25.2,,,,,,73.3,NSE
+112,Jubilant Pharmova,JUBLPHARMA,44.3,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,812.0,12945.0,28.0,1.96,9.55,9.54,,0.62,,,,,NSE
+113,SSPDL,SSPDL,44.0,Value,Nemish S Shah,1,15.1,19.6,2.69,,-64.7,0.4,,,,,,,BSE
+114,Indian Hotels Company,INDHOTEL,43.2,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,629.0,89576.0,49.6,7.74,16.1,17.2,,0.36,,,,,NSE
+115,ICDS,ICDSLTD,43.2,Unclassified,Nemish S Shah,1,37.9,47.9,20.3,1.65,6.05,11.8,,,,,,,NSE
+116,Indo Count,ICIL,43.1,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,259.0,5129.0,45.1,2.21,11.3,13.5,,0.77,,,,,NSE
+117,Dishman Carbogen,DCAL,42.8,Value,"Porinju Veliyath, Radhakishan Damani",2,165.0,2574.0,19.5,0.41,-0.32,2.42,,,,,,,NSE
+118,Sirca Paints,SIRCA,42.8,Unclassified,Porinju Veliyath,1,439.0,2489.0,40.5,5.63,14.9,19.7,,0.34,,,,,NSE
+119,Neuland Laboratories,NEULANDLAB,42.6,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,12597.0,16131.0,90.0,9.97,14.8,18.7,,0.1,,,,,NSE
+120,Annapurna Swadisht,ANNAPURNA,42.6,Value,Ajay Upadhyaya,1,164.0,358.0,15.4,1.14,9.71,12.8,,,,,,55.7,"NSE
+                - SM"
+121,Jubilant Ingrevia,JUBLINGREA,42.4,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,571.0,9084.0,33.0,2.99,8.88,11.2,,0.88,,,,,NSE
+122,Nova Iron & Steel,NOVAIRNSTL,42.4,Value,Vijay Kedia,1,12.2,44.2,19.4,1.5,8.16,3.68,,,,,,,BSE
+123,B&A,BNALTD,42.1,Value,Nemish S Shah,1,355.0,110.0,19.3,0.67,6.02,8.96,,,,,,,BSE
+124,Safari Industries,SAFARI,42.0,Unclassified,Ashish Kacholia,1,1666.0,8103.0,48.3,7.82,15.8,18.7,,0.18,,,,,NSE
+125,IFB Agro Industries,IFBAGRO,41.9,Deep Value,Dolly Khanna,1,757.0,708.0,14.8,1.08,3.82,6.24,,,,,,,NSE
+126,Aspinwall & Co.,ASPINWALL,41.8,Dividend,Nemish S Shah,1,219.0,171.0,30.8,0.92,7.79,8.84,,2.97,,,,,NSE
+127,AeonX Digital,ASHOKALCO,41.2,Unclassified,Nemish S Shah,1,126.0,57.9,25.8,1.1,6.79,9.78,,0.79,,,,,BSE
+128,AVI Polymers,AVI,41.0,Unclassified,Mohnish Pabrai,1,26.7,251.0,25.0,31.41,15.6,19.4,,,,,,,BSE
+129,Tata Motors CV,TMCV,40.9,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,459.0,168773.0,38.8,,,,,,,,,,NSE
+130,Lead Reclaim & Rubber,LRRPL,40.5,Unclassified,Nemish S Shah,1,60.3,52.1,26.6,6.03,9.34,13.2,,,,,,,"NSE
+                - SM"
+131,KRN Heat Exchanger,KRN,39.5,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,951.0,5917.0,87.0,11.19,16.8,20.8,,,,,,,NSE
+132,Chennai Meenakshi,CMMHOSP,39.4,Unclassified,Nemish S Shah,1,39.7,29.7,,,,-5.14,,,,,,,BSE
+133,GTN Textiles,GTNTEX,39.4,Unclassified,Nemish S Shah,1,8.61,10.0,,,,-1.48,,,,,,,BSE
+134,Mukta Agriculture,MUKTA,39.4,Unclassified,Vijay Kedia,1,49.4,113.0,,,,-1.79,,,,,,,NSE
+135,Sturdy Industries,STURDY,39.4,Unclassified,Anil Kumar Goel,1,0.2,3.03,,,,-10.9,,,,,,,BSE
+136,Ravindra Energy,RELTD,39.3,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,141.0,2540.0,26.8,6.38,10.8,9.53,,,,,,,NSE
+137,Lancor Holdings,LANCORHOL,39.3,Unclassified,Nemish S Shah,1,20.8,147.0,,0.78,2.81,10.5,,0.96,,,,,"NSE
+                - BE"
+138,Singer,SINGER,39.2,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,75.8,472.0,58.9,6.32,13.0,18.2,,,,,,,BSE
+139,Sangal Papers,SANPA,39.1,Deep Value,Nemish S Shah,1,186.0,24.4,13.0,0.53,7.05,9.85,,,,,,38.8,BSE
+140,Aeroflex Industries,AEROFLEX,38.8,Unclassified,Ashish Kacholia,1,220.0,2915.0,59.3,7.91,16.6,22.3,,0.14,,,,,NSE
+141,Faze Three,FAZE3Q,38.8,Unclassified,Ashish Kacholia,1,461.0,1121.0,35.7,2.63,8.69,11.9,,,,,,,"NSE
+                - BE"
+142,Radico Khaitan,RADICO,38.7,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,2762.0,37004.0,69.9,12.44,13.3,16.0,,0.14,,,,,NSE
+143,Precision Camshafts,PRECAM,38.1,Unclassified,Ajay Upadhyaya,1,128.0,1210.0,24.0,1.49,3.93,6.19,,0.78,,,,,NSE
+144,Alfa Transformers,ALFATRAN,37.9,Unclassified,Nemish S Shah,1,43.7,40.0,,1.78,4.48,11.5,,,,,,,BSE
+145,Divyashakti,DIVSHKT,37.9,Dividend,Nemish S Shah,1,50.0,51.4,35.4,0.26,1.58,2.18,,4.0,,,,,BSE
+146,Yatharth Hospital,YATHARTH,37.8,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,681.0,6570.0,39.3,3.89,10.4,14.0,,,,,,,NSE
+147,Ishita Drugs & Ind,ISHITADR,37.6,Unclassified,Nemish S Shah,1,80.4,24.1,27.0,2.14,8.4,9.91,,,,,,,BSE
+148,Euro Leder Fashions,EUROLED,37.5,Unclassified,Nemish S Shah,1,17.5,7.82,26.1,0.53,1.31,4.72,,,,,,,BSE
+149,AYM Syntex,AYMSYNTEX,37.2,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,192.0,1116.0,,1.96,2.53,8.36,,,,,,,NSE
+150,Modern Insulators,MODINSULAT,36.5,Value,Nemish S Shah,1,238.0,1121.0,17.4,2.27,7.26,8.9,,,,,,,BSE
+151,ABC,ABCINDQ,36.4,Unclassified,Nemish S Shah,1,65.4,35.4,,0.65,4.15,6.82,,0.76,,,,,BSE
+152,Texel Industries,TEXEL,36.4,Value,Ashish Kacholia,1,75.4,100.0,10.0,2.31,0.56,9.27,,,,,,30.8,BSE
+153,Arman Fin Serv,ARMANFIN,35.8,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1369.0,1438.0,50.7,1.65,6.17,13.3,,,,,,,NSE
+154,Sahasra Electronic Solutions,SAHASRA,35.8,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,242.0,606.0,830.0,2.69,1.24,,,,,,,,"NSE
+                - SM"
+155,OnMobile Global,ONMOBILE,35.7,Unclassified,Ajay Upadhyaya,1,49.2,524.0,30.1,0.8,-4.94,-2.34,,,,,,,NSE
+156,Daikaffil Chemicals,DAIKAFFI,35.6,Unclassified,"Mohnish Pabrai, Nemish S Shah",2,38.1,22.8,,2.89,-18.6,-18.6,,,,,,,BSE
+157,Advance Metering,AMTL,35.6,Unclassified,Nemish S Shah,1,15.0,24.1,,0.27,-10.6,-8.13,,,,,,,BSE
+158,Ansal Housing,ANSALHSG,35.6,Unclassified,Nemish S Shah,1,6.94,48.3,,0.37,-4.8,4.7,,,,,,,BSE
+159,Greencrest Financial,GREENCREST,35.6,Unclassified,Vijay Kedia,1,0.5,18.3,,0.32,2.24,5.28,,,,,,,BSE
+160,Loyal Equipments,LOYAL,35.6,Unclassified,Nemish S Shah,1,209.0,101.0,,0.42,-40.4,-11.1,,,,,,,"NSE
+                - BE"
+161,PBM Polytex,PBMPOLY,35.6,Unclassified,Nemish S Shah,1,54.5,37.5,,0.33,-5.12,-5.99,,,,,,,BSE
+162,Rajdarshan Industries,ARENTERP,35.6,Unclassified,Nemish S Shah,1,39.2,12.1,,0.54,1.06,0.87,,,,,,,NSE
+163,Rander Corporation,RANDER,35.6,Unclassified,Vijay Kedia,1,10.0,12.3,,0.53,-5.65,1.81,,,,,,,BSE
+164,Shree Steel Wire Ropes,SSWRL,35.6,Unclassified,Nemish S Shah,1,19.2,6.35,,0.49,-1.87,-2.47,,,,,,,BSE
+165,DU Digital Global,DUGLOBAL,35.5,Unclassified,Ashish Kacholia,1,37.2,267.0,49.5,2.72,7.66,15.2,,,,,,,"NSE
+                - SM"
+166,GKB Ophthalmics,GKB,35.5,Unclassified,Nemish S Shah,1,59.1,29.8,,0.57,-12.7,-6.0,,,,,,,BSE
+167,Suryavanshi Spinning,SURYVANSPG,35.5,Unclassified,Nemish S Shah,1,19.2,9.45,,0.59,-17.9,1.44,,,,,,,BSE
+168,Reliable Ventures,RELIABVEN,35.4,Unclassified,Nemish S Shah,1,19.2,21.1,,0.67,-2.21,-2.11,,,,,,,BSE
+169,Rajasthan Cylinders,RCCL,35.3,Unclassified,Nemish S Shah,1,30.9,10.4,,0.71,-7.09,-8.79,,,,,,,BSE
+170,Sreechem Resins,SREECHEM,35.0,Unclassified,Nemish S Shah,1,31.0,13.0,,0.95,-3.63,-1.99,,,,,,,BSE
+171,Radiowalla Network,RADIOWALLA,34.8,Unclassified,Ashish Kacholia,1,48.0,33.8,45.7,1.73,5.93,13.6,,,,,,,"NSE
+                - SM"
+172,Thirumalai Chemicals,TIRUMALCHM,34.5,Unclassified,Ajay Upadhyaya,1,168.0,2027.0,,1.32,-4.13,0.26,,,,,,,NSE
+173,Allcargo Logistics,ALLCARGO,34.1,Dividend,"Porinju Veliyath, Radhakishan Damani",2,8.03,1200.0,85.5,1.38,2.49,3.84,,13.7,,,,,NSE
+174,Gujarat Apollo Ind,GUJAPOLLO,34.0,Unclassified,Ashish Kacholia,1,398.0,512.0,,1.05,0.16,1.31,,0.5,,,,,NSE
+175,Aimco Pesticides,AIMCOPEST,33.7,Unclassified,Mohnish Pabrai,1,48.3,47.3,,1.93,-22.3,-12.4,,,,,,,BSE
+176,Infomedia Press,INFOMEDIA,33.2,Unclassified,Nemish S Shah,1,4.99,24.6,,2.35,-107.0,-38.5,,,,,,,NSE
+177,Transglobe Foods,TRANSFD,33.0,Unclassified,Sunil Singhania,1,464.0,6.72,,,,13.3,,,,,,,BSE
+178,Anjani Synthetics,ANJANI,32.7,Unclassified,Nemish S Shah,1,17.5,48.8,58.8,3.08,9.45,10.7,,,,,,,BSE
+179,TechEra Engineering,TECHERA,32.7,Unclassified,Ashish Kacholia,1,186.0,307.0,54.5,6.0,10.2,13.3,,,,,,,"NSE
+                - SM"
+180,BLB,BLBLIMITED,32.3,Unclassified,Nemish S Shah,1,17.5,89.7,,1.04,-4.66,0.28,,,,,,,"NSE
+                - BE"
+181,Skyline Millars,SKYLMILAR,32.2,Unclassified,Nemish S Shah,1,18.3,73.6,,3.08,-1.87,-1.58,,,,,,,BSE
+182,Shetron,SHETRON,31.7,Unclassified,Nemish S Shah,1,100.0,90.2,50.7,2.17,4.39,12.4,,1.0,,,,,BSE
+183,Raymond Lifestyle,RAYMONDLSL,31.0,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,813.0,4961.0,51.0,0.51,0.67,2.87,,,,,,,NSE
+184,Mysore Petchems,MYSORPETRO,30.6,Dividend,Nemish S Shah,1,93.4,61.5,1229.0,0.28,1.3,7.82,,2.14,,,,,BSE
+185,HB Portfolio,HBPOR,30.1,Unclassified,Nemish S Shah,1,60.7,65.4,101.0,0.23,-0.02,0.8,,1.65,,,,,BSE
+186,Sundrop Brands,SUNDROP,29.8,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,631.0,2378.0,60.7,1.64,3.75,0.22,,,,,,,NSE
+187,Baazar Style Retail,STYLEBAAZA,29.6,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,275.0,2047.0,79.9,4.49,7.01,8.93,,,,,,,NSE
+188,Brand Concepts,BCONCEPTS,29.5,Unclassified,Ashish Kacholia,1,245.0,308.0,119.0,3.97,7.17,10.8,,,,,,,NSE
+189,Fortis Healthcare,FORTIS,29.2,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,882.0,66549.0,66.0,7.06,10.1,12.0,,0.11,,,,,NSE
+190,KCP Sugar,KCPSUGIND,28.9,Unclassified,Dolly Khanna,1,23.0,259.0,63.0,0.56,1.99,4.63,,0.44,,,,,NSE
+191,Advent Hotels International,ADVENTHTL,28.6,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,181.0,972.0,33.2,1.12,0.65,3.28,,,,,,28.9,NSE
+192,Camlin Fine Sciences,CAMLINFINE,28.6,Unclassified,Ajay Upadhyaya,1,139.0,2679.0,1129.0,3.0,-15.0,11.0,,,,,,,NSE
+193,OneSource Specialty Pharma,ONESOURCE,28.5,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1474.0,16893.0,553.0,2.86,3.34,5.52,,,,,,,NSE
+194,Ganges Securities,GANGESSECU,28.5,Unclassified,Nemish S Shah,1,119.0,120.0,70.7,0.18,0.95,1.1,,,,,,,NSE
+195,Omaxe,OMAXE,28.5,Unclassified,Ajay Upadhyaya,1,74.9,1366.0,,,-506.0,-61.4,,,,,,,NSE
+196,Shiva Global Agro,SHIVAAGRO,28.5,Unclassified,Nemish S Shah,1,37.8,37.8,180.0,0.42,-3.34,0.87,,,,,,,BSE
+197,Zota Healthcare,ZOTA,28.2,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1177.0,3987.0,,12.59,-36.0,-17.0,,0.08,,,,,NSE
+198,Chartered Logistics,CHLOGIST,27.7,Unclassified,Anil Kumar Goel,1,6.36,80.9,426.0,1.21,2.73,5.76,,,,,,,BSE
+199,Xpro,XPROINDIA,27.6,Unclassified,Ashish Kacholia,1,885.0,2077.0,162.0,3.03,6.56,7.93,,0.23,,,,,NSE
+200,DCX Systems,DCXINDIA,27.5,Unclassified,Ajay Upadhyaya,1,193.0,2147.0,162.0,1.48,3.11,5.1,,,,,,,NSE
+201,Apollo Pipes,APOLLOPIPE,27.3,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,382.0,1702.0,105.0,2.04,4.61,7.32,,0.18,,,,,NSE
+202,Valor Estate,DBREALTY,27.1,Unclassified,"Rekha Jhunjhunwala, Porinju Veliyath, Radhakishan Damani, Rakesh Jhunjhunwala & Associate",4,104.0,5610.0,103.0,1.39,-2.54,-1.38,,,,,,29.1,NSE
+203,The Peria Karamalai Tea,PKTEA,26.6,Unclassified,Nemish S Shah,1,777.0,241.0,286.0,1.26,0.45,1.5,,0.13,,,,,NSE
+204,Wockhardt,WOCKPHARMA,26.5,Unclassified,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,1327.0,21579.0,199.0,4.72,-1.22,3.75,,,,,,,NSE
+205,Savera Industries,SAVERA,25.9,Unclassified,Dolly Khanna,1,158.0,188.0,67.3,3.89,5.8,9.78,,1.9,,,,,BSE
+206,Coffee Day Enterprises,COFFEEDAY,25.6,Unclassified,Dolly Khanna,1,26.7,564.0,,0.22,-0.96,1.01,,,,,,27.9,NSE
+207,Facor Alloys,FACORALL,25.6,Unclassified,Mohnish Pabrai,1,2.41,47.1,,0.47,3.58,-2.63,,,,,,70.9,BSE
+208,Inducto Steel,INDCTST,25.6,Unclassified,Nemish S Shah,1,50.0,20.1,,0.52,-9.0,-4.89,,,,,,43.3,BSE
+209,Super Tex Industries,SUPERTEX,25.6,Unclassified,Nemish S Shah,1,5.85,6.63,,0.22,-0.27,5.73,,,,,,32.7,BSE
+210,Tatva Chintan Pharma,TATVA,25.4,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,1156.0,2703.0,82.5,3.59,0.78,1.2,,0.09,,,,,NSE
+211,Yasho Industries,YASHO,24.9,Unclassified,Ashish Kacholia,1,1393.0,1677.0,93.0,3.92,1.63,7.23,,0.04,,,,,NSE
+212,Jauss Polymers,JAUSPOL,24.8,Unclassified,Mohnish Pabrai,1,32.2,14.9,,1.71,-1.12,-1.07,,,,,,,BSE
+213,Advance Syntex,ASYL,24.2,Unclassified,Nemish S Shah,1,5.46,6.06,,,,-1.46,,,,,,,BSE
+214,Kirloskar Electric,KECL,24.2,Unclassified,Ajay Upadhyaya,1,83.6,555.0,29.9,4.45,-6.12,8.35,,,,,,75.6,NSE
+215,GlobalSpace Tech,GLOBALSPACE,23.5,Unclassified,Nemish S Shah,1,19.0,65.5,262.0,1.2,1.41,2.13,,,,,,,BSE
+216,Navin Fluorine,NAVINFLUOR,22.7,Unclassified,Ajay Upadhyaya,1,6540.0,33474.0,59.6,9.3,11.5,11.7,,0.18,,,,,NSE
+217,PTC Industries,PTCIL,17.9,Unclassified,"Porinju Veliyath, Radhakishan Damani",2,17657.0,26476.0,397.0,18.68,6.07,7.74,,,,,,,NSE
+218,Concord Control,13510367,0,No Data,"Porinju Veliyath, Radhakishan Damani, Ashish Kacholia",3,,,,,,,,,,,,,
+219,Vikran Engineering,VIKRAN,0,No Data,"Porinju Veliyath, Radhakishan Damani, Ashish Kacholia",3,,,,,,,,,,,,,
+220,Bella Casa Fashion,BELLACASA,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+221,Jagsonpal Pharma,JAGSNPHARM,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+222,Karur Vysya Bank,KARURVYSYA,0,No Data,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,,,,,,,,,,,,,
+223,Kingfa Science,KINGFA,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+224,Laxmi Finance,LAXMIINDIA,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+225,N R Agarwal Industries,NRAIL,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+226,Oriental Rail,ORVENPR,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+227,Osel Devices,OSELDEVICE,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+228,Prakash Pipes,PPL,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+229,Siyaram Recycling,13521185,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+230,Solarium Green Energy,15131301,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+231,Star Health,STARHEALTH,0,No Data,"Rekha Jhunjhunwala, Rakesh Jhunjhunwala & Associate",2,,,,,,,,,,,,,
+232,Suryoday Small Finance Bank,SURYODAY,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+233,TAAL Tech,TAALENT,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+234,Tracxn Technologies,TRACXN,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+235,Unified Data Tech Solutions,13193245,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+236,Zelio EMobility,17270031,0,No Data,"Porinju Veliyath, Radhakishan Damani",2,,,,,,,,,,,,,
+237,A G Universal,AGUL,0,No Data,Anil Kumar Goel,1,,,,,,,,,,,,,
+238,Adcounty Media,544435,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+239,Aditya Spinners,ADITYASPIN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+240,Aelea Commodities,11290656,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+241,Akar Auto Industries,AKARTOOL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+242,Aryan Shares & Stock,542176,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+243,Ascensive Educare,17180088,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+244,BEW Engineering,BEWLTD,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+245,Benara Bearings & Pistons,541178,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+246,Bharat Parenterals,541096,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+247,Bombay Wire Ropes,504648,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+248,C2C Advanced Systems,C2C,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+249,Citadel Realty,CITADEL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+250,Cosmic CRF,13510368,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+251,Cosyn,COSYN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+252,Cravatex,CRAVATEX,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+253,Decorous Investment,DITCO,0,No Data,Anil Kumar Goel,1,,,,,,,,,,,,,
+254,Delton Cables,DLTNCBL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+255,Dhabriya Polywood,DHABRIYA,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+256,Diana Tea Company,DIANATEA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+257,Duke Offshore,DUKEOFS,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+258,Dynavision,DYNAVSN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+259,Elegant Marbles & Grani,ELEMARB,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+260,Elixir Capital,ELIXIR,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+261,Envair Electrodyne,KIRLOSELEC,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+262,Filtra Consultants,FILTRA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+263,Forcas Studio,FORCAS,0,No Data,Ajay Upadhyaya,1,,,,,,,,,,,,,
+264,Glaam Up Jwel,542477,0,No Data,Anil Kumar Goel,1,,,,,,,,,,,,,
+265,Harish Textile,13510162,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+266,Haryana Capfin,HARYNACAP,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+267,Hasti Finance,HASTIFIN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+268,Hindusthan Urban,HUIL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+269,Hisar Spinning Mills,HISARSP,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+270,India Lease Development,INDIALEASE,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+271,Indian Sucrose,OSWALSUG,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+272,Indus Aluminium Recyclers,CONTAINERWAY,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+273,Inflame Appliances,541083,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+274,JMJ Fintech,MEL,0,No Data,Vijay Kedia,1,,,,,,,,,,,,,
+275,Jaipan Industries,JAIPAN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+276,Joindre Cap Serv,JOINDRE,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+277,Jumbo Bag,JUMBO,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+278,KPT Industries,KULKPOWT,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+279,Kahan Packaging,14620248,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+280,Kamanwala Housing,KAMANWALA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+281,Keltech Energies,KELENRG,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+282,Kkalpana lndustries,KKALPANAIND,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+283,Kothari Fermentation,KFBL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+284,Laffans Petchems,LAFFANSQ,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+285,Lasa Supergenerics,LASA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+286,MP Today Media,MPTODAY,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+287,Maral Overseas,MARALOVER,0,No Data,Ajay Upadhyaya,1,,,,,,,,,,,,,
+288,Mega Fin,MEGFI,0,No Data,Vijay Kedia,1,,,,,,,,,,,,,
+289,Megatherm Induction,MEGATHERM,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+290,Metal Coatings,METALCO,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+291,Milestone Furniture,541337,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+292,Modern Dairies,MODAIRY,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+293,NPR Finance,NPRFIN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+294,Naman In-Store,NAMAN,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+295,National Fittings,NATFIT,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+296,National Oxygen,NOL,0,No Data,Dolly Khanna,1,,,,,,,,,,,,,
+297,Natraj Proteins,NATRAJPR,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+298,Newtrac Foods Beverages,EVERTEX,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+299,PCS Technology,PCS,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+300,PS IT Infrastructure,PSITINFRA,0,No Data,Vijay Kedia,1,,,,,,,,,,,,,
+301,PVV Infra,PVVINFRA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+302,Panjon,PANJON,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+303,Pioneer Investcorp,PIONRINV,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+304,Poona Dal & Oil,POONADAL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+305,Prakash Woollen,PWASML,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+306,Quadrant Future Tek,QUADFUTURE,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+307,Qualitek Labs,16691851,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+308,Rap Corp,RAP,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+309,Rapicut Carbides,RAPICUT,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+310,Rasandik Engineering,RASANDIK,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+311,Rathi Bars,RATHIBAR,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+312,Raunaq EPC Intl,RAUNAQEPC,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+313,Regency Fincorp,REGENCY,0,No Data,Anil Kumar Goel,1,,,,,,,,,,,,,
+314,Riba Textiles,RIBATEX,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+315,Rishi Laser,RISHILASE,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+316,Rishi Techtex,RISHIPACK,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+317,SG Finserve,SGFIN,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+318,Saboo Sodium Chloro,SABOOSOD,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+319,Saffron Industries,SAFFRON,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+320,Sanjivani paranteral,SANJIVIN,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+321,Seasons Textiles,SEASONST,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+322,Service Care,SERVICE,0,No Data,Ajay Upadhyaya,1,,,,,,,,,,,,,
+323,Shiva Granito Export,SHIVAEXPO,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+324,Shree Hari Chemicals,SHHARICH,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+325,Shree OSFM E-Mobility,SHREEOSFM,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+326,Shree Rajasthan Syntex,SHRERAJSYN,0,No Data,Anil Kumar Goel,1,,,,,,,,,,,,,
+327,Shree Refrigerations,17160478,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+328,Shri Vasuprada,JOONKTOLL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+329,Simran Farms,SIMRAN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+330,Spice Islands,SPICEISL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+331,Sudal Industries,SUDAI,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+332,Sunil Industries,SUNILTX,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+333,Sunshield Chemicals,SUNSHIEL,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+334,Superior Industrial,519234,0,No Data,Sunil Singhania,1,,,,,,,,,,,,,
+335,Suryaamba Spinning Mills,SURYAAMBA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+336,T & I Global,TIGLOB,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+337,TCM,TCMLMTD,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+338,Tai Industries,TAIIND,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+339,Tamboli Industries,TAMBOLI,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+340,Tanfac Industries,TANFACIND,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+341,Tarapur Transformers,TARAPUR,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+342,Terai Tea Company,TERAI,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+343,Thomas Scott,THOMASCOTT,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+344,Thrive Future Habitats,ADORMUL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+345,Triveni Glass,TRIVENSHET,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+346,Tyche Industries,TYCHE,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+347,Tyroon Tea Company,TYROON,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+348,Unick Fix-A-Form,541503,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+349,Uniroyal Industries,UNIROYAL,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+350,Universal Autofoundry,UNIAUTO,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+351,Universal Starch-chem,UNIVSTAR,0,No Data,Mohnish Pabrai,1,,,,,,,,,,,,,
+352,V-Marc,VMARCIND,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+353,Veejay Lakshmi,VJLAXMIE,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+354,Virat Crane,VIRATCRA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+355,Vistar Amar,SHUBHRA,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+356,Voltaire Leasing,VOLLF,0,No Data,Vijay Kedia,1,,,,,,,,,,,,,
+357,WEP Solutions,WEPSOLN,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
+358,WPIL,WPIL,0,No Data,Porinju Veliyath,1,,,,,,,,,,,,,
+359,Walchandnagar Ind,WALCHANNAG,0,No Data,Ashish Kacholia,1,,,,,,,,,,,,,
+360,Zenith Fibres,ZENIFIB,0,No Data,Nemish S Shah,1,,,,,,,,,,,,,
